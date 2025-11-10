@@ -22,9 +22,9 @@ ABP_ActionCharactor::ABP_ActionCharactor()
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(SpringArm);
 	PlayerCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));
-	PlayerCamera->bUsePawnControlRotation = false;
+	
 
-	bUseControllerRotationYaw = false; //컨트롤러의 Yaw회전을 사용안함
+	bUseControllerRotationYaw = true; //컨트롤러의 Yaw회전을 사용안함
 
 	GetCharacterMovement()->bOrientRotationToMovement = true; //이동 방향을 바라보게 회전
 	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);
@@ -63,7 +63,28 @@ FVector2D inputDirection = InValue.Get<FVector2D>();
 //UE_LOG(LogTemp, Log, TEXT("Dir : (%.1f, %.1f)"), inputDirection.X, inputDirection.Y);
 //UE_LOG(LogTemp, Log, TEXT("Dir : (%s)"), *inputDirection.ToString());
 
-FVector moveDirection(inputDirection.Y, inputDirection.X, 0.0f);
-AddMovementInput(moveDirection);
+// 컨트롤러가 있는지, 그리고 입력값이 있는지 확인합니다.
+if (Controller && (inputDirection.X != 0.0f || inputDirection.Y != 0.0f))
+{
+	// 1. 컨트롤러의 회전값(카메라가 바라보는 방향
+	const FRotator ControlRotation = Controller->GetControlRotation();
+
+	// 2. 우리는 수평(좌우) 회전값(Yaw)
+	const FRotator YawRotation(0, ControlRotation.Yaw, 0);
+
+	// 3. 컨트롤러의 '앞쪽' 방향 벡터
+	// EAxis::X는 '앞쪽'을 의미
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+	// 4. 컨트롤러의 '오른쪽' 방향 벡터
+	// EAxis::Y는 '오른쪽'을 의미
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	// 5. 앞/뒤 입력(W, S 키)에 '앞쪽' 방향을 적용
+	AddMovementInput(ForwardDirection, inputDirection.Y);
+
+	// 6. 좌/우 입력(A, D 키)에 '오른쪽' 방향을 적용
+	AddMovementInput(RightDirection, inputDirection.X);
+}
 }
 
