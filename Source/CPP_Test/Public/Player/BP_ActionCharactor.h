@@ -31,8 +31,15 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
+	//이동 방향 입력 받기
 	void OnMoveInput(const FInputActionValue& InValue);
-
+	//구르기 입력 받기
+	void OnRollInput(const FInputActionValue& InValue);
+	
+	//달리기 모드 설정
+	void SetSprintMode();
+	//걷기 모드 설정
+	void SetWalkingMode();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
@@ -42,7 +49,47 @@ protected:
 	TObjectPtr<class UCameraComponent> PlayerCamera = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Move;
+	TObjectPtr<UInputAction> IA_Move = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Sprint = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Roll = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float SprintSpeed = 1200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float WalkSpeed = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float MaxStamina = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float RollStamina = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float SprintStamina = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float RecoveryStamina = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float CurrentStamina = MaxStamina;
+
+
+	//구르기 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
+	TObjectPtr<UAnimMontage> RollMontage = nullptr;
+
+private:
+
+	UPROPERTY()
+	TWeakObjectPtr<UAnimInstance> AnimInstance = nullptr;
+
+	bool IsSprinting;
+
 
 	
 
