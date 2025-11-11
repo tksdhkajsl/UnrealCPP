@@ -41,6 +41,9 @@ protected:
 	//걷기 모드 설정
 	void SetWalkingMode();
 
+	/** 딜레이 시간이 지난 후 타이머가 호출할 함수 */
+	void OnStaminaRegenDelayFinished();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
 	TObjectPtr<USpringArmComponent> SpringArm = nullptr;
@@ -78,10 +81,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
 	float CurrentStamina = MaxStamina;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float StaminaRegenDelay;
+
 
 	//구르기 몽타주
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
 	TObjectPtr<UAnimMontage> RollMontage = nullptr;
+
+	
+
+	// 딜레이 타이머를 제어하기 위한 핸들
+	FTimerHandle StaminaRegenTimerHandle;
 
 private:
 
@@ -89,6 +100,8 @@ private:
 	TWeakObjectPtr<UAnimInstance> AnimInstance = nullptr;
 
 	bool IsSprinting;
+
+	bool CanRegenStamina = true;
 
 
 	
