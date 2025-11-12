@@ -25,6 +25,8 @@ ABP_ActionCharactor::ABP_ActionCharactor()
 	PlayerCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));	
 
 
+	Resource = CreateDefaultSubobject<UResourceComponent>(TEXT("PlayerResource"));
+
 	bUseControllerRotationYaw = false; //컨트롤러의 Yaw회전
 	GetCharacterMovement()->bOrientRotationToMovement = true; //이동 방향을 바라보게 회전
 	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);
@@ -36,7 +38,14 @@ ABP_ActionCharactor::ABP_ActionCharactor()
 void ABP_ActionCharactor::BeginPlay()
 {
 	Super::BeginPlay();
-	AnimInstance = GetMesh()->GetAnimInstance(); //ABP객체
+	if (GetMesh())
+	{
+		AnimInstance = GetMesh()->GetAnimInstance();	// ABP 객체 가져오기
+	}
+	if (Resource)
+	{
+		Resource->OnStaminaEmpty.AddDynamic(this, &ABP_ActionCharactor::SetWalkMode);
+	}
 
 	// 게임 진행 중에 자주 변경되는 값은 시작 시점에서 리셋을 해주는 것이 좋다.
 	bIsSprint = false;

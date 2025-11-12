@@ -37,7 +37,8 @@ protected:
 	// 구르기 입력 받기
 	void OnRollInput(const FInputActionValue& InValue);
 
-	// 달리기 모드 설정
+	// 걷기 모드 설정(다이나믹 델리게이트에 바인드하기 위해 UFUNCTION 추가)
+	UFUNCTION()
 	void SetSprintMode();
 
 	// 걷기 모드 설정

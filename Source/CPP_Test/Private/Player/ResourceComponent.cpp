@@ -2,6 +2,7 @@
 
 
 #include "Player/ResourceComponent.h"
+#include "GameFramework/Actor.h"
 
 // Sets default values for this component's properties
 UResourceComponent::UResourceComponent()
@@ -65,7 +66,6 @@ void UResourceComponent::AddStamina(float InValue)
 	{
 		CurrentStamina = 0.0f;
 		// 델리게이트로 스태미너가 떨어졌음을 알림
-
 		OnStaminaEmpty.Broadcast();
 	}
 
