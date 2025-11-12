@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Player/ResourceComponent.h"
 
 // Sets default values
 ABP_ActionCharactor::ABP_ActionCharactor()
@@ -28,9 +29,7 @@ ABP_ActionCharactor::ABP_ActionCharactor()
 	GetCharacterMovement()->bOrientRotationToMovement = true; //이동 방향을 바라보게 회전
 	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);
 
-	CanRegenStamina = true;  // 처음에는 회복 가능 상태
-	StaminaRegenDelay = 2.0f; // 2초 딜레이
-	IsSprinting = false;
+	
 }
 
 // Called when the game starts or when spawned
@@ -38,37 +37,19 @@ void ABP_ActionCharactor::BeginPlay()
 {
 	Super::BeginPlay();
 	AnimInstance = GetMesh()->GetAnimInstance(); //ABP객체
+
+	// 게임 진행 중에 자주 변경되는 값은 시작 시점에서 리셋을 해주는 것이 좋다.
+	bIsSprint = false;
 }
 
 // Called every frame
 void ABP_ActionCharactor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (IsSprinting)
+	if (bIsSprint && !GetVelocity().IsNearlyZero())	// 달리기 모드인 상태에서 움직이면 스태미너를 소비한다.
 	{
-		CurrentStamina -= SprintStamina * DeltaTime;
-		UE_LOG(LogTemp, Warning, TEXT("스테미나 : %.1f"), CurrentStamina);
-		if (CurrentStamina < 0.f)
-		{
-			CurrentStamina = 0.f;
-			SetWalkingMode();
-		}
+		Resource->AddStamina(-SprintStaminaCost * DeltaTime);	// 스태미너 감소
 	}
-	else
-	{		
-		if (CanRegenStamina)
-		{
-			CurrentStamina += RecoveryStamina * DeltaTime;
-			if (CurrentStamina > MaxStamina)
-			{
-				CurrentStamina = MaxStamina;
-			}
-			UE_LOG(LogTemp, Warning, TEXT("스테미나 : %.1f"), CurrentStamina);
-		}
-		// (bCanRegenStamina가 false인 동안은 '회복 대기' 중이므로 아무것도 하지 않습니다)
-	}
-
 }
 
 // Called to bind functionality to input
@@ -80,13 +61,13 @@ void ABP_ActionCharactor::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	if (enhanced)	// 입력 컴포넌트가 향상된 입력 컴포넌트일 때
 	{
 		enhanced->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnMoveInput);
-		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Started, [this](const FInputActionValue& _)
-			{
+		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Started,
+			[this](const FInputActionValue& _) {
 				SetSprintMode();
 			});
-		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Completed, [this](const FInputActionValue& _)
-			{
-				SetWalkingMode();
+		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Completed,
+			[this](const FInputActionValue& _) {
+				SetWalkMode();
 			});
 		enhanced->BindAction(IA_Roll, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnRollInput);
 	}
@@ -149,34 +130,17 @@ void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 	//		
 	//	}		
 	//}
-	if (AnimInstance.IsValid() &&
-		CurrentStamina >= RollStamina && // <<< [핵심] 스태미나가 충분한지 먼저 확인
-		!AnimInstance->IsAnyMontagePlaying())
+	if (AnimInstance.IsValid())
 	{
-		// 모든 조건 충족: 구르기 실행
-		UE_LOG(LogTemp, Warning, TEXT("구르기 실행!"));	
-
-		PlayAnimMontage(RollMontage);
-		CurrentStamina -= RollStamina; // 스태미나 소모
-		
-
-		UE_LOG(LogTemp, Warning, TEXT("남은 스테미나 : %.1f"), CurrentStamina);
-	}
-	else
-	{
-		// 구르기에 실패한 로그
-		if (!AnimInstance.IsValid())
+		if (!AnimInstance->IsAnyMontagePlaying()
+			&& Resource->HasEnoughStamina(RollStaminaCost))	// 몽타주 재생중이 아니고 충분한 스태미너가 있을 때만 작동
 		{
-			UE_LOG(LogTemp, Warning, TEXT("구르기 실패: 애님 인스턴스가 유효하지 않습니다."));
-		}
-		else if (CurrentStamina < RollStamina)
-		{
-			
-			UE_LOG(LogTemp, Warning, TEXT("구르기 실패: 스테미나가 모자랍니다!"));
-		}
-		else if (AnimInstance->IsAnyMontagePlaying())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("구르기 실패: 다른 몽타주가 재생 중입니다."));
+			//if (!GetLastMovementInputVector().IsNearlyZero())	// 입력을 하는 중에만 즉시 회전
+			//{
+			//	SetActorRotation(GetLastMovementInputVector().Rotation());	// 마지막 입력 방향으로 즉시 회전 시키기
+			//}
+			Resource->AddStamina(-RollStaminaCost);	// 스태미너 감소
+			PlayAnimMontage(RollMontage);
 		}
 	}
 	
@@ -187,41 +151,17 @@ void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 void ABP_ActionCharactor::SetSprintMode()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("달리기 모드"));
-	if (CurrentStamina > 0.f)
-	{
-		CanRegenStamina = false;
-		IsSprinting = true;
-
-		// [핵심] 만약 '회복 대기' 타이머가 돌고 있었다면(달리기를 멈춘 지 2초가 안 됐다면)
-		// 그 타이머를 즉시 취소
-		GetWorld()->GetTimerManager().ClearTimer(StaminaRegenTimerHandle);
-
-		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-	}
-	
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	bIsSprint = true;
 	
 	
 }
 
-void ABP_ActionCharactor::SetWalkingMode()
+void ABP_ActionCharactor::SetWalkMode()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("걷기 모드"));
-	IsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;	
-	// 딜레이(StaminaRegenDelay) 이후에 OnStaminaRegenDelayFinished 함수를 "한 번만" 
-	// 호출하도록 타이머를 설정
-	GetWorld()->GetTimerManager().SetTimer(
-		StaminaRegenTimerHandle,                   // 타이머 핸들
-		this,                                      // 함수를 호출할 오브젝트
-		&ABP_ActionCharactor::OnStaminaRegenDelayFinished, // 딜레이 후 호출될 함수
-		StaminaRegenDelay,                         // 딜레이 시간 (예: 2.0초)
-		false                                      // false: 반복 안 함 (한 번만 실행)
-	);
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	bIsSprint = false;
 }
 
-void ABP_ActionCharactor::OnStaminaRegenDelayFinished()
-{
-	// 딜레이가 끝났으므로, 이제 스태미나 회복 가능 상태로 변경
-	CanRegenStamina = true;
-}
 

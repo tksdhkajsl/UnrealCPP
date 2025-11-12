@@ -23,7 +23,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -31,77 +31,64 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
-	//이동 방향 입력 받기
+	// 이동 방향 입력 받기
 	void OnMoveInput(const FInputActionValue& InValue);
-	//구르기 입력 받기
+
+	// 구르기 입력 받기
 	void OnRollInput(const FInputActionValue& InValue);
-	
-	//달리기 모드 설정
+
+	// 달리기 모드 설정
 	void SetSprintMode();
-	//걷기 모드 설정
-	void SetWalkingMode();
 
-	/** 딜레이 시간이 지난 후 타이머가 호출할 함수 */
-	void OnStaminaRegenDelayFinished();
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
-	TObjectPtr<USpringArmComponent> SpringArm = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
-	TObjectPtr<class UCameraComponent> PlayerCamera = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Move = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Sprint = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Roll = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float SprintSpeed = 1200.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float WalkSpeed = 600.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float MaxStamina = 100.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float RollStamina = 15.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float SprintStamina = 10.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float RecoveryStamina = 3.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float CurrentStamina = MaxStamina;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
-	float StaminaRegenDelay;
-
-
-	//구르기 몽타주
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
-	TObjectPtr<UAnimMontage> RollMontage = nullptr;
-
-	
-
-	// 딜레이 타이머를 제어하기 위한 핸들
-	FTimerHandle StaminaRegenTimerHandle;
+	// 걷기 모드 설정
+	void SetWalkMode();
 
 private:
 
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
+	TObjectPtr<class USpringArmComponent> SpringArm = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
+	TObjectPtr<class UCameraComponent> PlayerCamera = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Resource")
+	TObjectPtr<class UResourceComponent> Resource = nullptr;
+
+	// 인풋 액션들
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Move = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Sprint = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Roll = nullptr;
+
+	// 달리기 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float SprintSpeed = 1200.0f;
+	// 걷기 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Movement")
+	float WalkSpeed = 600.0f;
+
+	// 구르기 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
+	TObjectPtr<UAnimMontage> RollMontage = nullptr;
+
+	// 달리기 상태일 때 초당 스태미너 비용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Resource")
+	float SprintStaminaCost = 20.0f;
+
+	// 구르기를 하기 위해 필요한 스태미너 비용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Resource")
+	float RollStaminaCost = 50.0f;
+
+	// 플레이어가 뛰고 있는 중인지 표시 해놓은 변수
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player|State")
+	bool bIsSprint = false;
+
+private:
 	UPROPERTY()
 	TWeakObjectPtr<UAnimInstance> AnimInstance = nullptr;
 
-	bool IsSprinting;
-
-	bool CanRegenStamina = true;
 
 
 	
