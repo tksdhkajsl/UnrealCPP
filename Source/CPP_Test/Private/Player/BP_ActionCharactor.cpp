@@ -55,10 +55,8 @@ void ABP_ActionCharactor::BeginPlay()
 void ABP_ActionCharactor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bIsSprint && !GetVelocity().IsNearlyZero())	// 달리기 모드인 상태에서 움직이면 스태미너를 소비한다.
-	{
-		Resource->AddStamina(-SprintStaminaCost * DeltaTime);	// 스태미너 감소
-	}
+	
+	SpendRunStamina(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -79,6 +77,7 @@ void ABP_ActionCharactor::SetupPlayerInputComponent(UInputComponent* PlayerInput
 				SetWalkMode();
 			});
 		enhanced->BindAction(IA_Roll, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnRollInput);
+		enhanced->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnAttackInput);
 	}
 
 }
@@ -155,7 +154,49 @@ void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 	
 }
 
+void ABP_ActionCharactor::OnAttackInput(const FInputActionValue& InValue)
+{
+	if (AnimInstance.IsValid() && Resource->HasEnoughStamina(AttackStaminaCost)) // 애님 인스턴스가 있고 스태미너도 충분할 때
+	{
+		if (!AnimInstance->IsAnyMontagePlaying())	// 몽타주가 재생 중이 아닐 때
+		{
+			// 첫번째 공격
+			PlayAnimMontage(AttackMontage);
+			Resource->AddStamina(-AttackStaminaCost);	// 스태미너 감소
+		}
+		else if (AnimInstance->GetCurrentActiveMontage() == AttackMontage)	// 몽타주가 재생 중인데, AttackMontage가 재생중이면
+		{
+			// 콤보 공격
+			SectionJumpForCombo();
+		}
+	}
+}
 
+void ABP_ActionCharactor::SectionJumpForCombo()
+{
+	if (SectionJumpNotify.IsValid() && bComboReady)	// SectionJumpNotify가 있고 콤보가 가능한 상태이면
+	{
+		UAnimMontage* current = AnimInstance->GetCurrentActiveMontage();
+		AnimInstance->Montage_SetNextSection(					// 다음 섹션으로 점프하기
+			AnimInstance->Montage_GetCurrentSection(current),		// 현재 섹션
+			SectionJumpNotify->GetNextSectionName(),				// 다음 섹션의 이름
+			current);												// 실행될 몽타주
+
+		bComboReady = false;	// 중복실행 방지
+		Resource->AddStamina(-AttackStaminaCost);	// 스태미너 감소
+	}
+}
+
+void ABP_ActionCharactor::SpendRunStamina(float DeltaTime)
+{
+	//*GetVelocity().ToString() 해당 값을 str로 넘겨준다.
+	if ((bIsSprint && !GetVelocity().IsNearlyZero())  //달리기 상태고 //움직임 없고
+		&& (AnimInstance.IsValid() && !AnimInstance->IsAnyMontagePlaying())) //어떤 몽타주도 재생중이지 않다.(루트모션 때문에 velocity 변경있음)
+	{
+		Resource->AddStamina(-SprintStaminaCost * DeltaTime);	// 스태미너 감소
+	}
+	
+}
 
 void ABP_ActionCharactor::SetSprintMode()
 {
@@ -172,5 +213,6 @@ void ABP_ActionCharactor::SetWalkMode()
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	bIsSprint = false;
 }
+
 
 

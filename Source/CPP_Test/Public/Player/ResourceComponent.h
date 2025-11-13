@@ -50,6 +50,10 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	// 체력 추가/감소용 함수
+	UFUNCTION(BlueprintCallable)
+	void AddHealth(float InValue);
+
 	// 스태미너 추가/감소용 함수
 	UFUNCTION(BlueprintCallable)
 	void AddStamina(float InValue);
@@ -95,6 +99,7 @@ private:
 		CurrentStamina = InValue;
 		OnStaminaChanged.Broadcast(CurrentStamina, MaxStamina);
 	};
+
 protected:
 	// 현재 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data|Health")
@@ -138,4 +143,5 @@ private:
 
 	FTimerHandle StaminaAutoRegenCoolTimer;	// 스태미너 자동 회복용 타이머 핸들
 	FTimerHandle StaminaRegenTickTimer;		// 스태미너 자동 회복시 틱별 타이머 핸들
+
 };

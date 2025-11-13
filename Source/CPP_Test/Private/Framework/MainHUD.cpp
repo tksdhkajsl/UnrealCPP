@@ -7,6 +7,7 @@
 void AMainHUD::BeginPlay()
 {
 	Super::BeginPlay();
+	
 
 	if (MainWidgetClass)
 	{

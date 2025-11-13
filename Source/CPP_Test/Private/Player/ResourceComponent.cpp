@@ -21,7 +21,8 @@ void UResourceComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// 게임 진행 중에 자주 변경되는 값은 시작 시점에서 리셋을 해주는 것이 좋다.
-	CurrentStamina = MaxStamina;	// 시작할 때 최대치로 리셋
+	SetCurrentHealth(MaxHealth);
+	SetCurrentStamina(MaxStamina);	// 시작할 때 최대치로 리셋
 	
 }
 
@@ -52,24 +53,35 @@ void UResourceComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	//}
 }
 
+void UResourceComponent::AddHealth(float InValue)
+{
+	float health = CurrentHealth + InValue;
+	SetCurrentHealth(FMath::Clamp(health, 0, MaxHealth));
+
+	if (!IsAlive())
+	{
+		OnDie.Broadcast();
+	}
+}
+
 void UResourceComponent::AddStamina(float InValue)
 {
-	// 스태미너 변경 처리
-	CurrentStamina += InValue;
-
 	//TimeSinceLastStaminaUse = 0;	// 시간을 직접 제어할 때 쓰던 코드(예시 확인용)
 
-	// 스태미너를 소비하고 일정 시간 뒤에 자동재생되게 타이머 세팅
-	StaminaAutoRegenCoolTimerSet();
+	// 스태미너 변경 처리
+	SetCurrentStamina(FMath::Clamp(CurrentStamina + InValue, 0, MaxStamina));
+	if (InValue < 0)
+	{
+		// 스태미너를 소비하고 일정 시간 뒤에 자동재생되게 타이머 세팅
+		StaminaAutoRegenCoolTimerSet();
 
+	}
 	if (CurrentStamina <= 0)
 	{
-		CurrentStamina = 0.0f;
 		// 델리게이트로 스태미너가 떨어졌음을 알림
 		OnStaminaEmpty.Broadcast();
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Stamina : %.1f"), CurrentStamina);
+	//UE_LOG(LogTemp, Warning, TEXT("Stamina : %.1f"), CurrentStamina);
 }
 
 void UResourceComponent::StaminaAutoRegenCoolTimerSet()
@@ -78,6 +90,8 @@ void UResourceComponent::StaminaAutoRegenCoolTimerSet()
 	FTimerManager& timerManager = world->GetTimerManager();
 
 	//GetWorldTimerManager().ClearTimer(StaminaCoolTimer);	// 해서 나쁠 것은 없음(SetTimer할 때 이미 내부적으로 처리하고 있다)
+	timerManager.ClearTimer(StaminaRegenTickTimer); //쿨이 새로 시작되면 지속회복 취소
+
 	timerManager.SetTimer(
 		StaminaAutoRegenCoolTimer,
 		[this]() {
@@ -100,17 +114,20 @@ void UResourceComponent::StaminaAutoRegenCoolTimerSet()
 
 void UResourceComponent::StaminaRegenPerTick()
 {
-	CurrentStamina += StaminaRegenAmountPerTick;	// 틱당 10
+	float stamina = CurrentStamina + StaminaRegenAmountPerTick;
+	//CurrentStamina += StaminaRegenAmountPerTick;	// 틱당 10
 	//CurrentStamina += MaxStamina * StaminaRegenRatePerTick;	// 틱당 최대 스태미너의 10%
 
-	if (CurrentStamina > MaxStamina)
+	if (stamina > MaxStamina)
 	{
-		CurrentStamina = MaxStamina;
+		stamina = MaxStamina;
 		UWorld* world = GetWorld();
 		FTimerManager& timerManager = world->GetTimerManager();
 		timerManager.ClearTimer(StaminaRegenTickTimer);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Stamina Regen : %.1f"), CurrentStamina);
+	SetCurrentStamina(stamina);
+
+	//UE_LOG(LogTemp, Warning, TEXT("Stamina Regen : %.1f"), CurrentStamina);
 }
 
