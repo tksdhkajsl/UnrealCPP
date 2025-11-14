@@ -11,6 +11,7 @@
 class UInputAction;
 //class USpringArmComponent;
 class UResourceComponent;
+class UStatusComponent;
 
 UCLASS()
 class CPP_TEST_API ABP_ActionCharactor : public ACharacter
@@ -32,13 +33,17 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// 노티파이가 공격을 가능하게 만들라는 신호가 왔을 때 실행될 함수
+	void OnAttackEnable(bool bEnable);
+
 	UResourceComponent* GetResourceComponent() { return Resource; }
+	UStatusComponent* GetStatusComponent() { return Status; }
 
 	inline void SetSectionJumpNotify(UAnimNotifyState_SectionJump* InSectionJumpNotify)
 	{
 		SectionJumpNotify = InSectionJumpNotify;
 		bComboReady = InSectionJumpNotify != nullptr;
-	};
+	}
 
 protected:
 	// 이동 방향 입력 받기
@@ -47,6 +52,9 @@ protected:
 	// 구르기 입력 받기
 	void OnRollInput(const FInputActionValue& InValue);
 
+	// 공격 입력 받기
+	void OnAttackInput(const FInputActionValue& InValue);
+
 	// 달리기 모드 설정
 	void SetSprintMode();
 
@@ -54,15 +62,13 @@ protected:
 	UFUNCTION()
 	void SetWalkMode();
 
-	//공격 입력 받기
-	void OnAttackInput(const FInputActionValue& InValue);
-
 private:
-	//콤보용 함수
+	// 콤보용 섹션 점프 함수
 	void SectionJumpForCombo();
 
-	//달리기 스태미너 소비 함수
+	// 달리기용 스태미너 소비 함수
 	void SpendRunStamina(float DeltaTime);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
 	TObjectPtr<class USpringArmComponent> SpringArm = nullptr;
@@ -70,6 +76,8 @@ protected:
 	TObjectPtr<class UCameraComponent> PlayerCamera = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Resource")
 	TObjectPtr<class UResourceComponent> Resource = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Status")
+	TObjectPtr<class UStatusComponent> Status = nullptr;
 
 	// 인풋 액션들
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -91,7 +99,8 @@ protected:
 	// 구르기 몽타주
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
 	TObjectPtr<UAnimMontage> RollMontage = nullptr;
-	//공격 몽타주
+
+	// 공격 몽타주
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Montage")
 	TObjectPtr<UAnimMontage> AttackMontage = nullptr;
 
@@ -102,23 +111,28 @@ protected:
 	// 구르기를 하기 위해 필요한 스태미너 비용
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Resource")
 	float RollStaminaCost = 50.0f;
-	// 공격 하기 위해 필요한 스태미너 비용
+
+	// 공격을 하기 위해 필요한 스태미너 비용
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player|Resource")
-	float AttackStaminaCost = 8.0f;
+	float AttackStaminaCost = 15.0f;
 
 	// 플레이어가 뛰고 있는 중인지 표시 해놓은 변수
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player|State")
 	bool bIsSprint = false;
 
+	// 플레이어가 현재 가지고 있는 무기
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
+	TWeakObjectPtr<class AWeaponActor> CurrentWeapon = nullptr;
+
 private:
 	UPROPERTY()
 	TWeakObjectPtr<UAnimInstance> AnimInstance = nullptr;
 
-	//현재 진행중인 색션 점프 노티파이 스테이트
+	// 현재 진행중인 섹션점프 노티파이 스테이트
 	UPROPERTY()
-	TWeakObjectPtr <UAnimNotifyState_SectionJump> SectionJumpNotify = nullptr;
+	TWeakObjectPtr<UAnimNotifyState_SectionJump> SectionJumpNotify;
 
-	//콤보가 가능한지 확인 플래그
+	// 콤보가 가능한 상황인지 확인하기 위한 플래그
 	bool bComboReady = false;
 
 

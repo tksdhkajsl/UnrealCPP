@@ -7,6 +7,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Player/ResourceComponent.h"
+#include "Player/StatusComponent.h"
+#include "Weapon/WeaponActor.h"
 
 // Sets default values
 ABP_ActionCharactor::ABP_ActionCharactor()
@@ -26,6 +28,7 @@ ABP_ActionCharactor::ABP_ActionCharactor()
 
 
 	Resource = CreateDefaultSubobject<UResourceComponent>(TEXT("PlayerResource"));
+	Status = CreateDefaultSubobject<UStatusComponent>(TEXT("PlayerStatus"));
 
 	bUseControllerRotationYaw = false; //컨트롤러의 Yaw회전
 	GetCharacterMovement()->bOrientRotationToMovement = true; //이동 방향을 바라보게 회전
@@ -80,6 +83,14 @@ void ABP_ActionCharactor::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		enhanced->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnAttackInput);
 	}
 
+}
+
+void ABP_ActionCharactor::OnAttackEnable(bool bEnable)
+{
+	if (CurrentWeapon.IsValid())
+	{
+		CurrentWeapon->AttackEnable(bEnable);
+	}
 }
 
 void ABP_ActionCharactor::OnMoveInput(const FInputActionValue& InValue)
