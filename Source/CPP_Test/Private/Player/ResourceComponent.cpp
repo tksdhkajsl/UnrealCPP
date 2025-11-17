@@ -56,7 +56,7 @@ void UResourceComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 void UResourceComponent::AddHealth(float InValue)
 {
 	float health = CurrentHealth + InValue;
-	SetCurrentHealth(FMath::Clamp(health, 0, MaxHealth));
+	SetCurrentHealth(health);
 
 	if (!IsAlive())
 	{
@@ -69,7 +69,7 @@ void UResourceComponent::AddStamina(float InValue)
 	//TimeSinceLastStaminaUse = 0;	// 시간을 직접 제어할 때 쓰던 코드(예시 확인용)
 
 	// 스태미너 변경 처리
-	SetCurrentStamina(FMath::Clamp(CurrentStamina + InValue, 0, MaxStamina));
+	SetCurrentStamina(CurrentStamina + InValue);
 	if (InValue < 0)
 	{
 		// 스태미너를 소비하고 일정 시간 뒤에 자동재생되게 타이머 세팅
