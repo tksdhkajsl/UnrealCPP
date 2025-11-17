@@ -80,7 +80,7 @@ protected:
 
 	// 아이템 획득에 걸리는 시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup")
-	float Duration = 0.5f;
+	float Duration = 1.5f;
 
 	UPROPERTY()
 	FVector PickupStartLocation;
