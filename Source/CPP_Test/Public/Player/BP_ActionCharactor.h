@@ -49,6 +49,13 @@ public:
 		bComboReady = InSectionJumpNotify != nullptr;
 	}
 
+	// 테스트용 함수
+	UFUNCTION(BlueprintCallable)
+	void TestDropUsedWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void TestDropCurrentWeapon();
+
 protected:
 	// 이동 방향 입력 받기
 	void OnMoveInput(const FInputActionValue& InValue);
@@ -70,11 +77,20 @@ protected:
 	void OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
 private:
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 	// 콤보용 섹션 점프 함수
 	void SectionJumpForCombo();
 
 	// 달리기용 스태미너 소비 함수
 	void SpendRunStamina(float DeltaTime);
+
+	// 사용 다한 무기를 버리는 함수
+	void DropUsedWeapon();
+
+	// 사용 중이던 무기를 버리는 함수
+	void DropCurrentWeapon();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
@@ -85,6 +101,8 @@ protected:
 	TObjectPtr<class UResourceComponent> Resource = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Status")
 	TObjectPtr<class UStatusComponent> Status = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Weapon")
+	TObjectPtr<USceneComponent> DropLocation = nullptr;
 
 	// 인풋 액션들
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -131,6 +149,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
 	TWeakObjectPtr<class AWeaponActor> CurrentWeapon = nullptr;
 
+	// 사용 다한 무기 액터(순수 장식)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
+	TMap<EItemCode, TSubclassOf<class AUsedWeapon>> UsedWeapons;
+
+	// Pickup할 수 있는 무기 액터
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
+	TMap<EItemCode, TSubclassOf<class APickup>> PickupWeapons;
+
 private:
 	UPROPERTY()
 	TWeakObjectPtr<UAnimInstance> AnimInstance = nullptr;
@@ -139,8 +165,10 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<UAnimNotifyState_SectionJump> SectionJumpNotify;
 
+	// AllowPrivateAccess 확인용
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Weapon", meta = (AllowPrivateAccess = "true"))
+	//bool bWeaponUseEnded = false;
+
 	// 콤보가 가능한 상황인지 확인하기 위한 플래그
 	bool bComboReady = false;
-	
-
 };

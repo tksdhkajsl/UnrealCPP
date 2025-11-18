@@ -33,12 +33,14 @@ APickup::APickup()
 	PickupOverlap = CreateDefaultSubobject<USphereComponent>(TEXT("Overlap"));
 	PickupOverlap->SetupAttachment(BaseRoot);
 	PickupOverlap->InitSphereRadius(100.0f);
-	PickupOverlap->SetCollisionProfileName(TEXT("OverlapOnlyPawn"));
+	//PickupOverlap->SetCollisionProfileName(TEXT("OverlapOnlyPawn"));	// 생성 직후는 바로 먹을 수 없다.
+	PickupOverlap->SetCollisionProfileName(TEXT("NoCollision"));
 
 	Effect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Effect"));
 	Effect->SetupAttachment(BaseRoot);
 
-	PickupTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("PickupTimeLine"));
+	PickupTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("PickupTimeline"));
+
 }
 
 // Called when the game starts or when spawned
@@ -46,26 +48,35 @@ void APickup::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (PickupOverlap)
+	/*if (PickupOverlap)
 	{
 		PickupOverlap->OnComponentBeginOverlap.AddDynamic(this, &APickup::OnPickupBeginOverlap);
-	}
+	}*/
 
 	if (PickupTimeline)
 	{
 		if (ScaleCurve)
 		{
-			FOnTimelineFloat ScaleUpdateDelegate;
-			ScaleUpdateDelegate.BindUFunction(this, FName("OnScaleUpdate"));
-			PickupTimeline->AddInterpFloat(ScaleCurve, ScaleUpdateDelegate);
+			FOnTimelineFloat UpdateDelegate;
+			UpdateDelegate.BindUFunction(this, FName("OnTimelineUpdate"));
+			PickupTimeline->AddInterpFloat(DistanceCurve, UpdateDelegate);
 
-			FOnTimelineEvent ScaleFinishDelegate;
-			ScaleFinishDelegate.BindUFunction(this, FName("OnScaleFinish"));
-			PickupTimeline->SetTimelineFinishedFunc(ScaleFinishDelegate);
+			FOnTimelineEvent FinishedDelegate;
+			FinishedDelegate.BindUFunction(this, FName("OnTimelineFinished"));
+			PickupTimeline->SetTimelineFinishedFunc(FinishedDelegate);
 		}
 
 		PickupTimeline->SetPlayRate(1 / Duration);
 	}
+
+	FTimerManager& timerManager = GetWorldTimerManager();
+	timerManager.ClearTimer(PickupableTimer);
+	timerManager.SetTimer(
+		PickupableTimer,
+		[this]() {
+			PickupOverlap->SetCollisionProfileName(TEXT("OverlapOnlyPawn"));
+		},
+		PickupableTime, false);
 
 	bPickuped = false;
 }
@@ -84,52 +95,43 @@ void APickup::OnPickup_Implementation(AActor* Target)
 	// 자신을 먹은 대상에게 자기가 가지고 있는 무기를 알려줘야 함
 	if (!bPickuped)
 	{
+		// 먹기 처리
 		UE_LOG(LogTemp, Log, TEXT("OnPickup_Implementation 실행"));
 		bPickuped = true;
 		PickupOwner = Target;
-
-		//물리 시뮬레이션 끄기 (필수! 안 끄면 위치 이동이 튐)
-		BaseRoot->SetSimulatePhysics(false);
-		//충돌체 때문에 캐릭터가 밀리지 않도록 콜리전 무시 설정
-		BaseRoot->SetCollisionProfileName(TEXT("NoCollision"));
-		
-		PickupStartLocation = GetActorLocation();
-		PickupTimeline->PlayFromStart();// 타임라인 시작
-		
+		PickupStartLocation = Mesh->GetRelativeLocation() + GetActorLocation();	// Mesh의 월드 위치
+		SetActorEnableCollision(false);		// 이 액터와 액터가 포함하는 모든 컴포넌트의 충돌 정지
+		BaseRoot->SetSimulatePhysics(false);// 바닥으로 가라앉는것 방지
+		PickupTimeline->PlayFromStart();	// 타임라인 시작
 	}
 }
 
-void APickup::OnPickupBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,	UPrimitiveComponent* OtherComp,	int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
+void APickup::AddImpulse(FVector& Velocity)
 {
-	//연출을 넣어도되는 곳
-	//UE_LOG(LogTemp, Log, TEXT("Pickup Overlap"));
+	BaseRoot->AddImpulse(Velocity, NAME_None, true);
 }
 
-void APickup::OnScaleUpdate(float Value)
+void APickup::OnTimelineUpdate(float Value)
 {
-	UE_LOG(LogTemp, Log, TEXT("OnScaleUpdate"));
-	FVector NewScale = FVector::One() * Value;
-	SetActorScale3D(NewScale);
+	// 타임라인의 정규화 된 진행 시간(0~1)
+	float currentTime = PickupTimeline->GetPlaybackPosition();
+	//UE_LOG(LogTemp, Log, TEXT("Timeline : %.2f"), currentTime);
 
-	// 2. 위치 이동 로직 (추가)
-	if (PickupOwner.IsValid())
-	{
-		// 타겟 위치 (캐릭터의 위치 + 약간 위쪽으로 오프셋을 주면 배꼽/가슴 쪽으로 날아옴)
-		FVector TargetLocation = PickupOwner->GetActorLocation() + FVector(0, 0, 50.0f);
+	// 커브의 현재 값 받아오기
+	float distanceValue = Value;
+	float heightValue = HeightCurve ? HeightCurve->GetFloatValue(currentTime) : 0.0f;
+	float scaleValue = ScaleCurve ? ScaleCurve->GetFloatValue(currentTime) : 1.0f;
 
-		// Value가 1.0 -> 0.0 으로 변한다면, 진행률(Alpha)은 반대로 0.0 -> 1.0 이어야 함
-		// 만약 커브가 0->1이라면 그냥 Value를 쓰면 됌.
-		// (ScaleCurve가 1->0으로 작아지는 커브라고 가정했을 때)
-		float Alpha = 1.0f - Value;
+	// 커브값을 기준으로 새 위치와 스케일 계산
+	FVector NewLocation = FMath::Lerp(PickupStartLocation, PickupOwner.Get()->GetActorLocation(), distanceValue);
+	NewLocation += heightValue * PickupHeight * FVector::UpVector;
+	Mesh->SetWorldLocation(NewLocation);
 
-		// 시작 위치에서 타겟 위치로 Alpha만큼 이동
-		FVector NewLocation = FMath::Lerp(PickupStartLocation, TargetLocation, Alpha);
-
-		SetActorLocation(NewLocation);
-	}
+	FVector NewScale = FVector::One() * scaleValue;
+	Mesh->SetRelativeScale3D(NewScale);
 }
 
-void APickup::OnScaleFinish()
+void APickup::OnTimelineFinished()
 {
 
 	// 자신을 먹은 대상에게 자기가 가지고 있는 무기를 알려줘야 함
@@ -137,4 +139,5 @@ void APickup::OnScaleFinish()
 	{
 		IInventoryOwner::Execute_AddItem(PickupOwner.Get(), PickupItem);
 	}
+	Destroy();	// 자기 자신 삭제
 }

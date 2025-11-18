@@ -9,7 +9,9 @@
 #include "Player/ResourceComponent.h"
 #include "Player/StatusComponent.h"
 #include "Weapon/WeaponActor.h"
+#include "Weapon/UsedWeapon.h"
 #include "Item/Pickupable.h"
+#include "Item/Pickup.h"
 
 // Sets default values
 ABP_ActionCharactor::ABP_ActionCharactor()
@@ -17,25 +19,28 @@ ABP_ActionCharactor::ABP_ActionCharactor()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	PrimaryActorTick.bCanEverTick = true;
+
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 350.0f;
 	SpringArm->SocketOffset = FVector(0, 0, 250);
-	SpringArm->bUsePawnControlRotation = true; //스프링암의 회전을 컨트롤러에 맞춤
+	SpringArm->bUsePawnControlRotation = true;	// 스프링암의 회전을 컨트롤러에 맞춤
 
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(SpringArm);
-	PlayerCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));	
+	PlayerCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));
 
+	DropLocation = CreateDefaultSubobject<USceneComponent>(TEXT("DropLocation"));
+	DropLocation->SetupAttachment(RootComponent);
 
 	Resource = CreateDefaultSubobject<UResourceComponent>(TEXT("PlayerResource"));
 	Status = CreateDefaultSubobject<UStatusComponent>(TEXT("PlayerStatus"));
 
-	bUseControllerRotationYaw = false; //컨트롤러의 Yaw회전
-	GetCharacterMovement()->bOrientRotationToMovement = true; //이동 방향을 바라보게 회전
+	bUseControllerRotationYaw = false;	// 컨트롤러의 Yaw 회전 사용 안함
+	GetCharacterMovement()->bOrientRotationToMovement = true;	// 이동 방향으로 캐릭터 회전
 	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);
 
-	
 }
 
 // Called when the game starts or when spawned
@@ -106,6 +111,17 @@ void ABP_ActionCharactor::OnAttackEnable(bool bEnable)
 	{
 		CurrentWeapon->AttackEnable(bEnable);
 	}
+}
+
+void ABP_ActionCharactor::TestDropUsedWeapon()
+{
+	DropUsedWeapon();
+}
+
+void ABP_ActionCharactor::TestDropCurrentWeapon()
+{
+	UE_LOG(LogTemp, Log, TEXT("TestDropCurrentWeapon"));
+	DropCurrentWeapon();
 }
 
 void ABP_ActionCharactor::OnMoveInput(const FInputActionValue& InValue)
@@ -182,13 +198,24 @@ void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 
 void ABP_ActionCharactor::OnAttackInput(const FInputActionValue& InValue)
 {
-	if (AnimInstance.IsValid() && Resource->HasEnoughStamina(AttackStaminaCost)) // 애님 인스턴스가 있고 스태미너도 충분할 때
+	// 애님 인스턴스가 있고, 스태미너도 충분하고, 현재 무기가 공격을 할 수 있어야 한다.
+	if (AnimInstance.IsValid() && Resource->HasEnoughStamina(AttackStaminaCost)
+		&& (CurrentWeapon.IsValid() && CurrentWeapon->CanAttack()))
 	{
 		if (!AnimInstance->IsAnyMontagePlaying())	// 몽타주가 재생 중이 아닐 때
 		{
-			// 첫번째 공격
-			PlayAnimMontage(AttackMontage);
+			// 첫번째 공격			
+			PlayAnimMontage(AttackMontage);	// 몽타주 재생
+
+			FOnMontageEnded onMontageEnded;
+			onMontageEnded.BindUObject(this, &ABP_ActionCharactor::OnAttackMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(onMontageEnded);	// 몽타주가 끝났을 때 델리게이트 발송(몽타주 플레이 이후에 등록해야 함)
+
 			Resource->AddStamina(-AttackStaminaCost);	// 스태미너 감소
+			if (CurrentWeapon.IsValid())
+			{
+				CurrentWeapon->OnAttack();	// 무기 공격시 처리(회수 차감)
+			}
 		}
 		else if (AnimInstance->GetCurrentActiveMontage() == AttackMontage)	// 몽타주가 재생 중인데, AttackMontage가 재생중이면
 		{
@@ -196,6 +223,7 @@ void ABP_ActionCharactor::OnAttackInput(const FInputActionValue& InValue)
 			SectionJumpForCombo();
 		}
 	}
+	
 }
 
 void ABP_ActionCharactor::SectionJumpForCombo()
@@ -210,6 +238,10 @@ void ABP_ActionCharactor::SectionJumpForCombo()
 
 		bComboReady = false;	// 중복실행 방지
 		Resource->AddStamina(-AttackStaminaCost);	// 스태미너 감소
+		if (CurrentWeapon.IsValid())
+		{
+			CurrentWeapon->OnAttack();
+		}
 	}
 }
 
@@ -224,6 +256,37 @@ void ABP_ActionCharactor::SpendRunStamina(float DeltaTime)
 	
 }
 
+void ABP_ActionCharactor::DropUsedWeapon()
+{
+	UE_LOG(LogTemp, Log, TEXT("다쓴 무기 버리기"));
+	if (CurrentWeapon.IsValid())
+	{
+		if (TSubclassOf<AUsedWeapon>* usedClass = UsedWeapons.Find(CurrentWeapon->GetWeaponID()))
+		{
+			GetWorld()->SpawnActor<AActor>(
+				*usedClass,
+				DropLocation->GetComponentLocation(),
+				GetActorRotation());
+		}
+	}
+}
+void ABP_ActionCharactor::DropCurrentWeapon()
+{
+	if (CurrentWeapon.IsValid() && CurrentWeapon->GetWeaponID() != EItemCode::BasicWeapon)
+	{
+		if (TSubclassOf<APickup>* pickupClass = PickupWeapons.Find(CurrentWeapon->GetWeaponID()))
+		{
+			APickup* pickup = GetWorld()->SpawnActor<APickup>(
+				*pickupClass,
+				DropLocation->GetComponentLocation(),
+				GetActorRotation()
+			);
+
+			FVector velocity = (GetActorForwardVector() + GetActorUpVector()) * 300.0f;
+			pickup->AddImpulse(velocity);
+		}
+	}
+}
 void ABP_ActionCharactor::SetSprintMode()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("달리기 모드"));
@@ -255,7 +318,16 @@ void ABP_ActionCharactor::OnBeginOverlap(AActor* OverlappedActor, AActor* OtherA
 	// Implements를 이용한 인터페이스 사용
 	if (OtherActor->Implements<UPickupable>())	// OtherActor가 IPickable인터페이스를 구현했는지 확인
 	{
-		IPickupable::Execute_OnPickup(OtherActor,this);	// 구현이 되어 있으면 실행
+		IPickupable::Execute_OnPickup(OtherActor, this);	// 구현이 되어 있으면 실행
+	}
+}
+
+void ABP_ActionCharactor::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// UE_LOG(LogTemp, Log, TEXT("공격 몽타주가 끝남"));
+	if (CurrentWeapon.IsValid() && !CurrentWeapon->CanAttack())	// CurrentWeapon이 공격할 수 없으면(=사용회수가 안남았다)
+	{
+		DropUsedWeapon();
 	}
 }
 
