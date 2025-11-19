@@ -5,11 +5,12 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "Common/CommonEnums.h"
-#include "InventoryOwner.generated.h"
+#include "Consumable.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsume, EItemCode, Consumed);
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UInventoryOwner : public UInterface
+class UConsumable : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,12 +18,12 @@ class UInventoryOwner : public UInterface
 /**
  * 
  */
-class CPP_TEST_API IInventoryOwner
+class CPP_TEST_API IConsumable
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Inventory")
-	void AddItem(EItemCode Code, int32 Count);
+
+	virtual FOnConsume& GetOnConsumeDelegate() = 0;
 };

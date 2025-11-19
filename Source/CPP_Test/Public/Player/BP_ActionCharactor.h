@@ -35,7 +35,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// 아이템 추가 인터페이스 함수 구현
-	virtual void AddItem_Implementation(EItemCode Code);
+	virtual void AddItem_Implementation(EItemCode Code, int32 Count);
+
+	// 무기를 장비하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void EquipWeapon(EItemCode WeaponCode);
 
 	// 노티파이가 공격을 가능하게 만들라는 신호가 왔을 때 실행될 함수
 	void OnAttackEnable(bool bEnable);
@@ -86,11 +90,11 @@ private:
 	// 달리기용 스태미너 소비 함수
 	void SpendRunStamina(float DeltaTime);
 
-	// 사용 다한 무기를 버리는 함수
-	void DropUsedWeapon();
+	// 다 쓴 무기를 버리는 함수
+	void DropWeapon(EItemCode WeaponCode);
 
 	// 사용 중이던 무기를 버리는 함수
-	void DropCurrentWeapon();
+	void DropCurrentWeapon(EItemCode WeaponCode);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Camera")
@@ -103,6 +107,9 @@ protected:
 	TObjectPtr<class UStatusComponent> Status = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Weapon")
 	TObjectPtr<USceneComponent> DropLocation = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Weapon")
+	TObjectPtr<class UWeaponManagerComponent> WeaponManager = nullptr;
+
 
 	// 인풋 액션들
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -148,14 +155,6 @@ protected:
 	// 플레이어가 현재 가지고 있는 무기
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
 	TWeakObjectPtr<class AWeaponActor> CurrentWeapon = nullptr;
-
-	// 사용 다한 무기 액터(순수 장식)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
-	TMap<EItemCode, TSubclassOf<class AUsedWeapon>> UsedWeapons;
-
-	// Pickup할 수 있는 무기 액터
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Weapon")
-	TMap<EItemCode, TSubclassOf<class APickup>> PickupWeapons;
 
 private:
 	UPROPERTY()

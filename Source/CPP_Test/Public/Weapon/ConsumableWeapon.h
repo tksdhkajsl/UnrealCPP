@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Weapon/WeaponActor.h"
+#include "Item/Consumable.h"
 #include "ConsumableWeapon.generated.h"
 
 
@@ -18,9 +19,16 @@ class CPP_TEST_API AConsumableWeapon : public AWeaponActor
 	
 public:
 	virtual void OnAttack() override;
-	virtual void OnWeaponPickuped(ABP_ActionCharactor* InOwner) override;
+	virtual void OnWeaponPickuped(int InCount) override;
 
 	virtual bool CanAttack() override { return RemainingUseCount > 0; }
+	int32 GetRemainingUseCount() const { return RemainingUseCount; }
+
+	//virtual FOnConsume& GetOnConsumeDelegate() { return OnWeaponUseEnded; };
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void OnWeaponActivate() override;
 
 protected:
 	// 최대 사용회수
@@ -31,7 +39,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	int32 RemainingUseCount = 10;
 
+	// 무기를 다 사용했을 때 실행되는 델리게이트(현재 사용 안함)
 	UPROPERTY(BlueprintAssignable, BlueprintReadWrite, Category = "Weapon")
-	FOnWeaponUseEnded OnWeaponUseEnded;
-
+	FOnConsume OnWeaponUseEnded;
 };
