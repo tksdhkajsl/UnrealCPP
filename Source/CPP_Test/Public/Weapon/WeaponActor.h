@@ -62,6 +62,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UCapsuleComponent> WeaponCollision = nullptr;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UNiagaraComponent> WeaponSlashEffect = nullptr;
+
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	EItemCode WeaponID = EItemCode::BasicWeapon;
 

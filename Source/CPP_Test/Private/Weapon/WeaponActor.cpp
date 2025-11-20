@@ -6,6 +6,7 @@
 #include "Player/BP_ActionCharactor.h"
 #include "Player/StatusComponent.h"
 #include "Kismet/GameplayStatics.h" //블루프린터 예전 tool
+#include "NiagaraComponent.h"
 
 // Sets default values
 AWeaponActor::AWeaponActor()
@@ -23,7 +24,9 @@ AWeaponActor::AWeaponActor()
 	WeaponCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Collision"));
 	WeaponCollision->SetupAttachment(WeaponMesh);
 	WeaponCollision->SetCollisionProfileName(TEXT("OverlapOnlyPawn"));
-
+	
+	WeaponSlashEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Effect"));
+	WeaponSlashEffect->SetupAttachment(WeaponMesh);
 }
 
 // Called when the game starts or when spawned
