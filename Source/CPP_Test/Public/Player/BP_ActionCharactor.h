@@ -44,6 +44,12 @@ public:
 	// 노티파이가 공격을 가능하게 만들라는 신호가 왔을 때 실행될 함수
 	void OnAttackEnable(bool bEnable);
 
+	// 노티파이가 무기의 트레일을 표시하라고 신호가 왔을 때 실행될 함수
+	void OnWeaponTrailEnable(bool bEnable);
+
+	// 노티파이가 범위 공격을 하라고 신호가 왔을 때 실행될 함수
+	void OnAreaAttack();
+
 	UResourceComponent* GetResourceComponent() { return Resource; }
 	UStatusComponent* GetStatusComponent() { return Status; }
 

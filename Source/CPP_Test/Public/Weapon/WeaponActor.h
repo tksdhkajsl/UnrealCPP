@@ -29,6 +29,14 @@ protected:
 	virtual void OnWeaponDeactivate() {};
 
 public:
+	// 대상에게 데미지를 주는 함수
+	UFUNCTION(BlueprintCallable)
+	void DamageToTarget(AActor* InTarget);
+
+	// 일정 범위 내의 적에게 데미지를 주는 함수
+	UFUNCTION(BlueprintCallable)
+	void DamageToArea();
+
 	// 무기 자체를 활성화/비활성화 하는 함수(비지빌리티, 충돌 등등)
 	UFUNCTION(BlueprintCallable)
 	void WeaponActivate(bool bActivate);
@@ -36,6 +44,10 @@ public:
 	// 공격을 활성화/비활성화 하는 함수(컬리전 켜고 끄기)
 	UFUNCTION(BlueprintCallable)
 	void AttackEnable(bool bEnable);
+
+	// 무기 트레일을 활성화/비활성화 하는 함수(나이아가라 켜고 끄기)
+	UFUNCTION(BlueprintCallable)
+	void TrailEnable(bool bEnable);
 
 	// 공격을 했을 때 실행되어야 할 함수
 	UFUNCTION(BlueprintCallable)
@@ -65,8 +77,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UNiagaraComponent> WeaponSlashEffect = nullptr;
 
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	EItemCode WeaponID = EItemCode::BasicWeapon;
 
@@ -75,6 +85,21 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
 	TSubclassOf<UDamageType> DamageType = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data|Area")
+	float AreaInnerRadius = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data|Area")
+	float AreaOuterRadius = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data|Area")
+	float Falloff = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data|Area")
+	float DebugDuration = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data|Area")
+	TObjectPtr<class UNiagaraSystem> AreaAttackEffect = nullptr;
 
 private:
 	TWeakObjectPtr<ABP_ActionCharactor> WeaponOwner = nullptr;

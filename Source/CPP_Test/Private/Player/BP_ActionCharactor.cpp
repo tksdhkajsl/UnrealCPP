@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
 #include "Player/ResourceComponent.h"
 #include "Player/StatusComponent.h"
@@ -78,6 +79,7 @@ void ABP_ActionCharactor::Tick(float DeltaTime)
 }
 
 // Called to bind functionality to input
+// Called to bind functionality to input
 void ABP_ActionCharactor::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -97,7 +99,6 @@ void ABP_ActionCharactor::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		enhanced->BindAction(IA_Roll, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnRollInput);
 		enhanced->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &ABP_ActionCharactor::OnAttackInput);
 	}
-
 }
 
 void ABP_ActionCharactor::AddItem_Implementation(EItemCode Code, int32 Count)
@@ -108,7 +109,6 @@ void ABP_ActionCharactor::AddItem_Implementation(EItemCode Code, int32 Count)
 	EquipWeapon(Code);
 	CurrentWeapon->OnWeaponPickuped(Count);
 }
-
 
 void ABP_ActionCharactor::EquipWeapon(EItemCode WeaponCode)
 {
@@ -131,23 +131,29 @@ void ABP_ActionCharactor::EquipWeapon(EItemCode WeaponCode)
 	CurrentWeapon->WeaponActivate(true);
 }
 
-void ABP_ActionCharactor::DropWeapon(EItemCode WeaponCode)
-{
-	UE_LOG(LogTemp, Log, TEXT("다쓴 무기 버리기"));
-	if (TSubclassOf<AUsedWeapon> usedClass = WeaponManager->GetUsedWeaponClass(WeaponCode))
-	{
-		GetWorld()->SpawnActor<AActor>(
-			usedClass,
-			DropLocation->GetComponentLocation(),
-			GetActorRotation());
-	}
-}
-
 void ABP_ActionCharactor::OnAttackEnable(bool bEnable)
 {
 	if (CurrentWeapon.IsValid())
 	{
 		CurrentWeapon->AttackEnable(bEnable);
+	}
+}
+
+void ABP_ActionCharactor::OnWeaponTrailEnable(bool bEnable)
+{
+	if (CurrentWeapon.IsValid())
+	{
+		CurrentWeapon->TrailEnable(bEnable);
+	}
+}
+
+void ABP_ActionCharactor::OnAreaAttack()
+{
+	//UE_LOG(LogTemp, Log, TEXT("OnAreaAttack"));
+	if (CurrentWeapon.IsValid())
+	{
+		//UE_LOG(LogTemp, Log, TEXT("OnAreaAttack : CurrentWeapon.IsValid()") );
+		CurrentWeapon->DamageToArea();
 	}
 }
 
@@ -167,60 +173,20 @@ void ABP_ActionCharactor::TestDropCurrentWeapon()
 
 void ABP_ActionCharactor::OnMoveInput(const FInputActionValue& InValue)
 {
-FVector2D inputDirection = InValue.Get<FVector2D>();
-//UE_LOG(LogTemp, Log, TEXT("Dir : (%.1f, %.1f)"), inputDirection.X, inputDirection.Y);
-//UE_LOG(LogTemp, Log, TEXT("Dir : (%s)"), *inputDirection.ToString());
+	FVector2D inputDirection = InValue.Get<FVector2D>();
+	//UE_LOG(LogTemp, Log, TEXT("Dir : (%.1f, %.1f)"), inputDirection.X, inputDirection.Y);
+	//UE_LOG(LogTemp, Log, TEXT("Dir : (%s)"), *inputDirection.ToString());
+	FVector moveDirection(inputDirection.Y, inputDirection.X, 0.0f);
 
+	FQuat controlYawRotation = FQuat(FRotator(0, GetControlRotation().Yaw, 0));	// 컨트롤러의 Yaw회전을 따로 뽑아와서
+	moveDirection = controlYawRotation.RotateVector(moveDirection);	// 이동 방향에 적용
 
-FVector moveDirection(inputDirection.Y, inputDirection.X, 0.0f);
+	AddMovementInput(moveDirection);
 
-FQuat controlYawRotation = FQuat(FRotator(0, GetControlRotation().Yaw, 0)); //컨트롤러의 yaw회전을 따로 뽑아서
-moveDirection = controlYawRotation.RotateVector(moveDirection); //이동방향에 적용
-
-AddMovementInput(moveDirection);
-
-//// 컨트롤러가 있는지, 그리고 입력값이 있는지 확인합니다.
-//if (Controller && (inputDirection.X != 0.0f || inputDirection.Y != 0.0f))
-//{
-//	// 1. 컨트롤러의 회전값(카메라가 바라보는 방향)
-//	const FRotator ControlRotation = Controller->GetControlRotation();
-//
-//	// 2. 우리는 수평(좌우) 회전값(Yaw)
-//	const FRotator YawRotation(0, ControlRotation.Yaw, 0);
-//
-//	// 3. 컨트롤러의 '앞쪽' 방향 벡터
-//	// EAxis::X는 '앞쪽'을 의미
-//	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-//
-//	// 4. 컨트롤러의 '오른쪽' 방향 벡터
-//	// EAxis::Y는 '오른쪽'을 의미
-//	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-//
-//	// 5. 앞/뒤 입력(W, S 키)에 '앞쪽' 방향을 적용
-//	AddMovementInput(ForwardDirection, inputDirection.Y);
-//
-//	// 6. 좌/우 입력(A, D 키)에 '오른쪽' 방향을 적용
-//	AddMovementInput(RightDirection, inputDirection.X);
-//}
 }
 
 void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 {
-	UE_LOG(LogTemp, Warning, TEXT("구르기 모드"));
-	//if (AnimInstance.IsValid())
-	//{
-	//	if (!AnimInstance->IsAnyMontagePlaying())
-	//	{
-	//		//,ETeleportType 순간이동 관련 
-	//		// 아래 0,0,0이 되서 마지막 방향 구르기되기 때문에 해당 조건문 넣어야 마지막에 바라본 방향으로 구름
-	//		//if (!GetLastMovementInputVector().IsNearlyZero())
-	//		//{
-	//		//	SetActorRotation(GetLastMovementInputVector().Rotation());// 마지막 입력 방향으로 회전시키기
-	//		//}
-	//		PlayAnimMontage(RollMontage);			
-	//		
-	//	}		
-	//}
 	if (AnimInstance.IsValid())
 	{
 		if (!AnimInstance->IsAnyMontagePlaying()
@@ -234,7 +200,6 @@ void ABP_ActionCharactor::OnRollInput(const FInputActionValue& InValue)
 			PlayAnimMontage(RollMontage);
 		}
 	}
-	
 }
 
 void ABP_ActionCharactor::OnAttackInput(const FInputActionValue& InValue)
@@ -264,7 +229,50 @@ void ABP_ActionCharactor::OnAttackInput(const FInputActionValue& InValue)
 			SectionJumpForCombo();
 		}
 	}
-	
+}
+
+void ABP_ActionCharactor::SetSprintMode()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("달리기 모드"));
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	bIsSprint = true;
+}
+
+void ABP_ActionCharactor::SetWalkMode()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("걷기 모드"));
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	bIsSprint = false;
+}
+
+void ABP_ActionCharactor::OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+	//UE_LOG(LogTemp, Log, TEXT("Char overlap : other is %s"), *OtherActor->GetName());
+
+	// Cast를 이용한 인터페이스 사용
+	//IPickupable* test = Cast<IPickupable>(OtherActor);
+	//if (test)
+	//{
+	//	IPickupable::Execute_OnPickup(OtherActor);	// 만약에 블루프린트 구현이 있을 경우. 블루프린트의 구현이 실행된다.
+	//	//test->OnPickup_Implementation();	// 블루프린트 구현은 무시
+	//}
+
+	// Implements를 이용한 인터페이스 사용
+	if (OtherActor->Implements<UPickupable>())	// OtherActor가 IPickable인터페이스를 구현했는지 확인
+	{
+		IPickupable::Execute_OnPickup(OtherActor, this);	// 구현이 되어 있으면 실행
+	}
+}
+
+void ABP_ActionCharactor::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// UE_LOG(LogTemp, Log, TEXT("공격 몽타주가 끝남"));
+	if (CurrentWeapon.IsValid() && !CurrentWeapon->CanAttack())	// CurrentWeapon이 공격할 수 없으면(=사용회수가 안남았다)
+	{
+		//DropUsedWeapon();		
+		DropWeapon(CurrentWeapon->GetWeaponID());	// 현재 사용 중인 무기 버리기
+		EquipWeapon(EItemCode::BasicWeapon);
+	}
 }
 
 void ABP_ActionCharactor::SectionJumpForCombo()
@@ -288,15 +296,28 @@ void ABP_ActionCharactor::SectionJumpForCombo()
 
 void ABP_ActionCharactor::SpendRunStamina(float DeltaTime)
 {
-	//*GetVelocity().ToString() 해당 값을 str로 넘겨준다.
-	if ((bIsSprint && !GetVelocity().IsNearlyZero())  //달리기 상태고 //움직임 없고
-		&& (AnimInstance.IsValid() && !AnimInstance->IsAnyMontagePlaying())) //어떤 몽타주도 재생중이지 않다.(루트모션 때문에 velocity 변경있음)
+	if ((bIsSprint && !GetVelocity().IsNearlyZero())							// 달리기 상태이고 움직이지 않고 있다.			
+		&& (AnimInstance.IsValid() && !AnimInstance->IsAnyMontagePlaying()))	// 어떤 몽타쥬도 재생중이지 않다.(루트모션 때문에 Velocity 변경있음)
 	{
 		Resource->AddStamina(-SprintStaminaCost * DeltaTime);	// 스태미너 감소
+		//UE_LOG(LogTemp, Log, TEXT("Velocity : %s"), *GetVelocity().ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("Stamina : %.1f"), Resource->GetCurrentStamina());
 	}
-	
+
+	//GetWorld()->GetFirstPlayerController()->GetHUD();
 }
 
+void ABP_ActionCharactor::DropWeapon(EItemCode WeaponCode)
+{
+	UE_LOG(LogTemp, Log, TEXT("다쓴 무기 버리기"));
+	if (TSubclassOf<AUsedWeapon> usedClass = WeaponManager->GetUsedWeaponClass(WeaponCode))
+	{
+		GetWorld()->SpawnActor<AActor>(
+			usedClass,
+			DropLocation->GetComponentLocation(),
+			GetActorRotation());
+	}
+}
 
 void ABP_ActionCharactor::DropCurrentWeapon(EItemCode WeaponCode)
 {
@@ -319,50 +340,4 @@ void ABP_ActionCharactor::DropCurrentWeapon(EItemCode WeaponCode)
 		}
 	}
 }
-void ABP_ActionCharactor::SetSprintMode()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("달리기 모드"));
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-	bIsSprint = true;
-	
-	
-}
-
-void ABP_ActionCharactor::SetWalkMode()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("걷기 모드"));
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	bIsSprint = false;
-}
-
-void ABP_ActionCharactor::OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
-{
-	UE_LOG(LogTemp, Log, TEXT("Char overlap : other is %s"), *OtherActor->GetName());
-
-	// Cast를 이용한 인터페이스 사용
-	//IPickupable* test = Cast<IPickupable>(OtherActor);
-	//if (test)
-	//{
-	//	IPickupable::Execute_OnPickup(OtherActor);	// 만약에 블루프린트 구현이 있을 경우. 블루프린트의 구현이 실행된다.
-	//	//test->OnPickup_Implementation();	// 블루프린트 구현은 무시
-	//}
-
-	// Implements를 이용한 인터페이스 사용
-	if (OtherActor->Implements<UPickupable>())	// OtherActor가 IPickable인터페이스를 구현했는지 확인
-	{
-		IPickupable::Execute_OnPickup(OtherActor, this);	// 구현이 되어 있으면 실행
-	}
-}
-
-void ABP_ActionCharactor::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (CurrentWeapon.IsValid() && !CurrentWeapon->CanAttack())	// CurrentWeapon이 공격할 수 없으면(=사용회수가 안남았다)
-	{
-		//DropUsedWeapon();		
-		DropWeapon(CurrentWeapon->GetWeaponID());	// 현재 사용 중인 무기 버리기
-		EquipWeapon(EItemCode::BasicWeapon);
-	}
-}
-
-
 
