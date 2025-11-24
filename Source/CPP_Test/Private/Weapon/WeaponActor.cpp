@@ -59,7 +59,7 @@ void AWeaponActor::DamageToTarget(AActor* InTarget)
 		}
 		instigator = WeaponOwner->GetController();
 	}
-	//UE_LOG(LogTemp, Log, TEXT("Overlapped : %s"), *OtherActor->GetName());
+	UE_LOG(LogTemp, Log, TEXT("Overlapped : %s"), *InTarget->GetName());
 	UGameplayStatics::ApplyDamage(InTarget, finalDamage, instigator, this, DamageType);
 }
 
