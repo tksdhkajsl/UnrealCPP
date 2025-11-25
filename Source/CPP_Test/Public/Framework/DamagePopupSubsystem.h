@@ -20,7 +20,7 @@ public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	UFUNCTION(BlueprintCallable, Category = "Damage Popup Pool")
-	void ShowDamagePopup(float Damge, FVector& Location);
+	void ShowDamagePopup(float Damge,const FVector& Location);
 
 	void ReturnToPool(ADamagePopupActor* ReturnActor);
 

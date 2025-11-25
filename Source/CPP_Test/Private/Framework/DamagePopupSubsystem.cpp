@@ -15,7 +15,7 @@ void UDamagePopupSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 }
 
-void UDamagePopupSubsystem::ShowDamagePopup(float Damge, FVector& Location)
+void UDamagePopupSubsystem::ShowDamagePopup(float Damge, const FVector& Location)
 {
 	ADamagePopupActor* selected = nullptr;
 
