@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Common/CommonEnums.h"
 #include "CommonStructures.generated.h"
 
 USTRUCT(BlueprintType)
@@ -28,3 +29,4 @@ struct FItemDropInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drop Items")
 	float DropRate;
 };
+

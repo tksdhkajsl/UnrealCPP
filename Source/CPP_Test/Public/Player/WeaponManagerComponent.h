@@ -8,6 +8,9 @@
 #include "Data/WeaponDataAsset.h"
 #include "WeaponManagerComponent.generated.h"
 
+class AWeaponActor;
+class AUsedWeapon;
+class APickup;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CPP_TEST_API UWeaponManagerComponent : public UActorComponent
@@ -18,9 +21,18 @@ public:
 	// Sets default values for this component's properties
 	UWeaponManagerComponent();
 
-	AWeaponActor* GetEquippedWeapon(EItemCode InType) const;
-	TSubclassOf<AUsedWeapon> GetUsedWeaponClass(EItemCode InType) const;
-	TSubclassOf<APickup> GetPickupWeaponClass(EItemCode InType) const;
+	AWeaponActor* GetEquippedWeapon(EWeaponCode InType) const;
+	TSubclassOf<AUsedWeapon> GetUsedWeaponClass(EWeaponCode InType) const;
+	TSubclassOf<APickup> GetPickupWeaponClass(EWeaponCode InType) const;
+
+	inline EItemCode GetItemCode(EWeaponCode Code) const
+	{
+		return WeaponCodeToItemCode[Code];
+	};
+	inline EWeaponCode GetWeaponCode(EItemCode Code) const
+	{
+		return ItemCodeToWeaponCode[Code];
+	};
 
 protected:
 	// Called when the game starts
@@ -38,14 +50,15 @@ public:
 protected:
 	// 이 컴포넌트가 관리하는 무기 클래스들
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Database")
-	TMap<EItemCode, TObjectPtr<UWeaponDataAsset>> WeaponDatabase;
+	TMap<EWeaponCode, TObjectPtr<UWeaponDataAsset>> WeaponDatabase;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Instance")
-	TMap<EItemCode, TObjectPtr<AWeaponActor>> WeaponInstances;
+	TMap<EWeaponCode, TObjectPtr<AWeaponActor>> WeaponInstances;
 
 private:
 	UPROPERTY()
 	TWeakObjectPtr<class ABP_ActionCharactor> OwnerPlayer = nullptr;
 
-		
+	TMap<EItemCode, EWeaponCode> ItemCodeToWeaponCode;
+	TMap<EWeaponCode, EItemCode> WeaponCodeToItemCode;
 };

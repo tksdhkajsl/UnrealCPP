@@ -29,14 +29,18 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintCallable)
-	void TestDropItem() { DropItems(); };
+	void TestDropItemCounts();
+
+	UFUNCTION(BlueprintCallable)
+	void TestDropItem(float BonusChange) { DropItems(BonusChange); };
+
 
 private:
 	UFUNCTION()
 	void OnTakeDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
 		class AController* InstigatedBy, AActor* DamageCauser);
 
-	void DropItems();
+	void DropItems(float BonusChange = 0.0f);
 	void OnDie();
 
 protected:

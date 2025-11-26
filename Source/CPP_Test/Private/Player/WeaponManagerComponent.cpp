@@ -14,10 +14,29 @@ UWeaponManagerComponent::UWeaponManagerComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
-	// ...
+	WeaponCodeToItemCode.Empty();
+	WeaponCodeToItemCode.Add(EWeaponCode::BasicWeapon, EItemCode::BasicWeapon);
+	WeaponCodeToItemCode.Add(EWeaponCode::Sword, EItemCode::Sword);
+	WeaponCodeToItemCode.Add(EWeaponCode::Hammer, EItemCode::Hammer);
+	ItemCodeToWeaponCode.Empty();
+	ItemCodeToWeaponCode.Add(EItemCode::BasicWeapon, EWeaponCode::BasicWeapon);
+	ItemCodeToWeaponCode.Add(EItemCode::Sword, EWeaponCode::Sword);
+	ItemCodeToWeaponCode.Add(EItemCode::Hammer, EWeaponCode::Hammer);
+
+	// 사람이 실수하는 것을 방지하기 위해 경고
+	const UEnum* EnumPtr = StaticEnum<EWeaponCode>();
+	if (EnumPtr)
+	{
+		int weaponTypeCount = EnumPtr->NumEnums() - 1;
+		if (WeaponCodeToItemCode.Num() != weaponTypeCount
+			|| ItemCodeToWeaponCode.Num() != weaponTypeCount)
+		{
+			UE_LOG(LogTemp, Error, TEXT("WeaponCode와 ItemCode의 매칭이 잘못된 것 같습니다."));
+		}
+	}
 }
 
-AWeaponActor* UWeaponManagerComponent::GetEquippedWeapon(EItemCode InType) const
+AWeaponActor* UWeaponManagerComponent::GetEquippedWeapon(EWeaponCode InType) const
 {
 	//if (const TObjectPtr<AWeaponActor>* weapon = WeaponInstances.Find(InType))
 	//{
@@ -33,13 +52,13 @@ AWeaponActor* UWeaponManagerComponent::GetEquippedWeapon(EItemCode InType) const
 	return weapon;
 }
 
-TSubclassOf<AUsedWeapon> UWeaponManagerComponent::GetUsedWeaponClass(EItemCode InType) const
+TSubclassOf<AUsedWeapon> UWeaponManagerComponent::GetUsedWeaponClass(EWeaponCode InType) const
 {
 	const UWeaponDataAsset* dataAsset = *WeaponDatabase.Find(InType);
 	return dataAsset->UsedWaeponClass;
 }
 
-TSubclassOf<APickup> UWeaponManagerComponent::GetPickupWeaponClass(EItemCode InType) const
+TSubclassOf<APickup> UWeaponManagerComponent::GetPickupWeaponClass(EWeaponCode InType) const
 {
 	const UWeaponDataAsset* dataAsset = *WeaponDatabase.Find(InType);
 	return dataAsset->PickupWeaponClass;
@@ -56,8 +75,8 @@ void UWeaponManagerComponent::BeginPlay()
 	ValidateWeaponDatabase();
 	SpawnWeaponInstances();
 
-	OwnerPlayer->EquipWeapon(EItemCode::BasicWeapon);	// 시작무기 설정
-	
+	OwnerPlayer->EquipWeapon(EWeaponCode::BasicWeapon);	// 시작무기 설정
+
 }
 
 void UWeaponManagerComponent::ValidateWeaponDatabase()
@@ -111,4 +130,3 @@ void UWeaponManagerComponent::SpawnWeaponInstances()
 		}
 	}
 }
-

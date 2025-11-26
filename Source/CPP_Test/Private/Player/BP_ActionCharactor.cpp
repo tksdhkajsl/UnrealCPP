@@ -105,19 +105,19 @@ void ABP_ActionCharactor::AddItem_Implementation(EItemCode Code, int32 Count)
 {
 	//const UEnum* EnumPtr = StaticEnum<EItemCode>();
 	//UE_LOG(LogTemp, Log, TEXT("아이템 추가 : %s"), *EnumPtr->GetDisplayNameTextByValue(static_cast<int8>(Code)).ToString());
-
-	EquipWeapon(Code);
+	EWeaponCode weaponCode = WeaponManager->GetWeaponCode(Code);
+	EquipWeapon(weaponCode);
 	CurrentWeapon->OnWeaponPickuped(Count);
 }
 
-void ABP_ActionCharactor::EquipWeapon(EItemCode WeaponCode)
+void ABP_ActionCharactor::EquipWeapon(EWeaponCode WeaponCode)
 {
 	if (CurrentWeapon.IsValid())
 	{
 		// 장비하고 있던 무기가 기본 무기가 아니면
-		if (CurrentWeapon->GetWeaponID() != EItemCode::BasicWeapon	// 장비하고 있던 무기가 Consumable이고
-			&& CurrentWeapon->GetWeaponID() != WeaponCode			// 새로 장비할 무기와 다른 종류고
-			&& CurrentWeapon->CanAttack())							// 장비하고 있던 무기에 회수가 남아있는 상황이면
+		if (CurrentWeapon->GetWeaponID() != EWeaponCode::BasicWeapon	// 장비하고 있던 무기가 Consumable이고
+			&& CurrentWeapon->GetWeaponID() != WeaponCode				// 새로 장비할 무기와 다른 종류고
+			&& CurrentWeapon->CanAttack())								// 장비하고 있던 무기에 회수가 남아있는 상황이면
 		{
 			DropCurrentWeapon(CurrentWeapon->GetWeaponID());
 		}
@@ -271,7 +271,7 @@ void ABP_ActionCharactor::OnAttackMontageEnded(UAnimMontage* Montage, bool bInte
 	{
 		//DropUsedWeapon();		
 		DropWeapon(CurrentWeapon->GetWeaponID());	// 현재 사용 중인 무기 버리기
-		EquipWeapon(EItemCode::BasicWeapon);
+		EquipWeapon(EWeaponCode::BasicWeapon);
 	}
 }
 
@@ -307,7 +307,7 @@ void ABP_ActionCharactor::SpendRunStamina(float DeltaTime)
 	//GetWorld()->GetFirstPlayerController()->GetHUD();
 }
 
-void ABP_ActionCharactor::DropWeapon(EItemCode WeaponCode)
+void ABP_ActionCharactor::DropWeapon(EWeaponCode WeaponCode)
 {
 	UE_LOG(LogTemp, Log, TEXT("다쓴 무기 버리기"));
 	if (TSubclassOf<AUsedWeapon> usedClass = WeaponManager->GetUsedWeaponClass(WeaponCode))
@@ -319,9 +319,9 @@ void ABP_ActionCharactor::DropWeapon(EItemCode WeaponCode)
 	}
 }
 
-void ABP_ActionCharactor::DropCurrentWeapon(EItemCode WeaponCode)
+void ABP_ActionCharactor::DropCurrentWeapon(EWeaponCode WeaponCode)
 {
-	if (CurrentWeapon.IsValid() && CurrentWeapon->GetWeaponID() != EItemCode::BasicWeapon)
+	if (CurrentWeapon.IsValid() && CurrentWeapon->GetWeaponID() != EWeaponCode::BasicWeapon)
 	{
 		if (TSubclassOf<APickup> pickupClass = WeaponManager->GetPickupWeaponClass(WeaponCode))
 		{
@@ -340,4 +340,5 @@ void ABP_ActionCharactor::DropCurrentWeapon(EItemCode WeaponCode)
 		}
 	}
 }
+
 

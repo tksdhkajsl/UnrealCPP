@@ -6,8 +6,9 @@
 #include "Enemy/DamagePopupActor.h"
 #include "Framework/DamagePopupSubsystem.h"
 #include "Framework/EnemyTrackingSubsystem.h"
+#include "Framework/PickupFactorySubsystem.h"
 #include "Player/ResourceComponent.h"
-#include "Data/DropItemDataTableRow.h"
+#include "Data/DataTableRow.h"
 #include "Item/Pickup.h"
 
 // Sets default values
@@ -68,6 +69,34 @@ void AEnemyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 }
 
+void AEnemyPawn::TestDropItemCounts()
+{
+	TMap<FName, uint8*> RowMap = DropItemTable->GetRowMap();
+	TArray<int32> counter = { 0,0,0 };
+	//counter.Empty(3);
+
+	for (int i = 0; i < 1000000; i++)
+	{
+		// 중복으로 당첨 가능(아무것도 안나올 수도 있음)
+		int index = 0;
+		for (const auto& element : RowMap)
+		{
+			FDropItemData_v2_TableRow* row = (FDropItemData_v2_TableRow*)element.Value;
+			if (FMath::FRand() <= row->DropRate)
+			{
+				counter[index]++;
+			}
+
+			index++;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Test count : 100만"));
+	UE_LOG(LogTemp, Log, TEXT("index 0 : %d"), counter[0]);
+	UE_LOG(LogTemp, Log, TEXT("index 1 : %d"), counter[1]);
+	UE_LOG(LogTemp, Log, TEXT("index 2 : %d"), counter[2]);
+}
+
 void AEnemyPawn::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
 {
 	//GEngine->AddOnScreenDebugMessage()
@@ -120,7 +149,7 @@ void AEnemyPawn::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageT
 	
 }
 
-void AEnemyPawn::DropItems()
+void AEnemyPawn::DropItems(float BonusChange)
 {
 	//for (const auto& item : DropItemInfo)
 	//{
@@ -136,17 +165,23 @@ void AEnemyPawn::DropItems()
 		APickup* pickup = nullptr;
 		TMap<FName, uint8*> RowMap = DropItemTable->GetRowMap();
 
-		// 중복으로 당첨 가능
+		// 중복으로 당첨 가능(아무것도 안나올 수도 있음)
 		for (const auto& element : RowMap)
 		{
 			pickup = nullptr;
-			FDropItemDataTableRow* row = (FDropItemDataTableRow*)element.Value;
+			FDropItemData_v2_TableRow* row = (FDropItemData_v2_TableRow*)element.Value;
 			if (FMath::FRand() <= row->DropRate)
 			{
-				pickup = GetWorld()->SpawnActor<APickup>(
-					row->DropItemClass,
+				//pickup = GetWorld()->SpawnActor<APickup>(
+				//	row->DropItemClass,
+				//	GetActorLocation() + FVector::UpVector * 200.0f,
+				//	GetActorRotation());
+
+				pickup = GetWorld()->GetSubsystem<UPickupFactorySubsystem>()->SpawnPickup(
+					row->PickupCode,
 					GetActorLocation() + FVector::UpVector * 200.0f,
-					GetActorRotation());
+					GetActorRotation()
+				);
 			}
 			if (pickup)
 			{
@@ -158,14 +193,22 @@ void AEnemyPawn::DropItems()
 			}
 		}
 
-		//// 전체 가중치 사용하는 방식(1개 보장)
+		//// 전체 가중치 사용하는 방식
 		//float totalWeight = 0.0f;
 		//for (const auto& element : RowMap)
 		//{
 		//	FDropItemData_TableRow* row = (FDropItemData_TableRow*)element.Value;
 		//	totalWeight += row->DropRate;
 		//}
-		//float randomSelect = FMath::FRandRange(0, totalWeight);
+
+		//float max = 1.0f;
+		//if (totalWeight > 1.0f)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("totalWeight가 1을 넘습니다. DropRate는 비율로 사용됩니다."));
+		//	max = totalWeight;
+		//}
+		//
+		//float randomSelect = FMath::FRandRange(0, max);
 		//float currentWeight = 0.0f;
 		//for (const auto& element : RowMap)
 		//{
