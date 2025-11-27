@@ -1,0 +1,37 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Interface.h"
+#include "Common/CommonEnums.h"
+#include "InventoryOwner.generated.h"
+
+// This class does not need to be modified.
+UINTERFACE(MinimalAPI)
+class UInventoryOwner : public UInterface
+{
+	GENERATED_BODY()
+};
+
+/**
+ * 
+ */
+class KI_UNREALCPP_API IInventoryOwner
+{
+	GENERATED_BODY()
+
+	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
+public:
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Inventory")
+	void AddItem(EItemCode Code, int32 ItemCount);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Inventory")
+	void AddWeapon(EWeaponCode Code, int32 UseCount);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Inventory")
+	void AddMoney(int32 Income);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Inventory")
+	void RemoveMoney(int32 Expense);
+};
