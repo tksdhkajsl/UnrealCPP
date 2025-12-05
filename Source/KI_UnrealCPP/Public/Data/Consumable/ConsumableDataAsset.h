@@ -15,6 +15,7 @@ class KI_UNREALCPP_API UConsumableDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	// 대상에게 자신의 정보를 기반으로 영향을 주는 함수
 	UFUNCTION(BlueprintCallable, Category = "Pickup|Consumable")
 	virtual void Excute(AActor* InTarget) const {};	
 };

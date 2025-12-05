@@ -5,9 +5,9 @@
 
 void APickupConsumable::OnPickupComplete_Implementation()
 {
-	OnConsume();
+	OnConsume();	// 기능 동작
 
-	Super::OnPickupComplete_Implementation();
+	Super::OnPickupComplete_Implementation();	// 자기 자신 삭제
 }
 
 void APickupConsumable::OnConsume()

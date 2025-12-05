@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
+#include "UI/MainHudWidget.h"
 #include "ActionPlayerController.generated.h"
 
 class UInputMappingContext;	// UInputMappingContext라는 클래스가 있다고 알려주는 역할
@@ -22,19 +23,34 @@ class KI_UNREALCPP_API AActionPlayerController : public APlayerController
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* aPawn) override;
+	virtual void OnUnPossess() override;
 
 public:
 	virtual void SetupInputComponent() override;
 
+	void OpenInventoryWidget();
+	UFUNCTION()
+	void CloseInventoryWidget();
+
+	void InitializeMainHudWidget(UMainHudWidget* InWidget);
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Inventory")
+	void TestChangeInventoryTarget(UInventoryComponent* NewTarget);
+
 private:
 	void OnLookInput(const FInputActionValue& InValue);
+	void OnInventoryOnOff();	
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Look;
+	TObjectPtr<UInputAction> IA_Look = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_InventoryOnOff = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Pitch")
 	float VewPitchMin = -40;
@@ -44,4 +60,7 @@ protected:
 
 private:
 	int32 GameInputPriority = 1;
+	TWeakObjectPtr<UMainHudWidget> MainHudWidget = nullptr;
+	TWeakObjectPtr<UInventoryWidget> InventoryWidget = nullptr;
+	TWeakObjectPtr<class UInventoryComponent> InventoryComponent = nullptr;
 };

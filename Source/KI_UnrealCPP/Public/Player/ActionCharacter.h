@@ -8,16 +8,18 @@
 #include "AnimNotify/AnimNotifyState_SectionJump.h"
 #include "Player/InventoryOwner.h"
 #include "Player/HasHealth.h"
+#include "Player/HasStamina.h"
 #include "ActionCharacter.generated.h"
 
 class UInputAction;
 class UResourceComponent;
 class UStatusComponent;
+class UInventoryComponent;
 //class USpringArmComponent;
 //class UAnimNotifyState_SectionJump;
 
 UCLASS()
-class KI_UNREALCPP_API AActionCharacter : public ACharacter, public IInventoryOwner, public IHasHealth
+class KI_UNREALCPP_API AActionCharacter : public ACharacter, public IInventoryOwner, public IHasHealth, public IHasStamina
 {
 	GENERATED_BODY()
 
@@ -37,7 +39,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// IInventoryOwner 인터페이스 함수 구현
-	virtual void AddItem_Implementation(EItemCode Code, int32 ItemCount) override;
+	virtual void AddItem_Implementation(UItemDataAsset* ItemData, int32 ItemCount) override;
 	virtual void AddWeapon_Implementation(EWeaponCode Code, int32 UseCount) override;
 	virtual void AddMoney_Implementation(int32 Income) override;
 	virtual void RemoveMoney_Implementation(int32 Expense) override;
@@ -45,6 +47,9 @@ public:
 	// IHasHealth 인터페이스 함수 구현
 	virtual void HealHealth_Implementation(float InHeal) override;
 	virtual void DamageHealth_Implementation(float InDamage) override;
+
+	// IHasStamina 인터페이스 함수 구현
+	virtual void RecoveryStamina_Implementation(float InRecovery) override;
 
 	// 무기를 장비하는 함수
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
@@ -59,8 +64,11 @@ public:
 	// 노티파이가 범위 공격을 하라고 신호가 왔을 때 실행될 함수
 	void OnAreaAttack();
 
-	UResourceComponent* GetResourceComponent() { return Resource; }
-	UStatusComponent* GetStatusComponent() { return Status; }
+	UResourceComponent* GetResourceComponent() const { return Resource; }
+	UStatusComponent* GetStatusComponent() const { return Status; }
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Inventory")
+	virtual UInventoryComponent* GetInventoryComponent() const override { return Inventory; }
 
 	inline void SetSectionJumpNotify(UAnimNotifyState_SectionJump* InSectionJumpNotify)
 	{
@@ -124,6 +132,8 @@ protected:
 	TObjectPtr<USceneComponent> DropLocation = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Weapon")
 	TObjectPtr<class UWeaponManagerComponent> WeaponManager = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Inventory")
+	TObjectPtr<class UInventoryComponent> Inventory = nullptr;
 
 
 	// 인풋 액션들
