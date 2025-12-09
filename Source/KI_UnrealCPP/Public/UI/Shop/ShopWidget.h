@@ -6,8 +6,9 @@
 #include "Blueprint/UserWidget.h"
 #include "ShopWidget.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShopCloseRequested);
 /**
- * 
+ *
  */
 UCLASS()
 class KI_UNREALCPP_API UShopWidget : public UUserWidget
@@ -18,11 +19,23 @@ protected:
 	virtual void NativeConstruct() override;
 
 public:
+	void InitializeShop(UDataTable* ItemList);
+
 	void AddToItemSellDelegate(const FScriptDelegate& Delegate);
+
+	UFUNCTION()
+	void UpdateAllBuyButtonState(int32 _);
 
 protected:
 	void ResetShopItemListWidget();
-	
+
+private:
+	UFUNCTION()
+	void OnExitButtonClicked();
+
+public:
+	FOnShopCloseRequested OnShopCloseRequested;
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell", meta = (BindWidget))
 	TObjectPtr<class UShopItemSellWidget> ItemSellWidget;

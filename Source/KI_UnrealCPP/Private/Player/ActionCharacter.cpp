@@ -19,11 +19,12 @@
 #include "Item/PickupWeapon.h"
 #include "Item/PickupItem.h"
 #include "Framework/PickupFactorySubsystem.h"
+#include "NPC/Interactable.h"
 
 // Sets default values
 AActionCharacter::AActionCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -47,7 +48,7 @@ AActionCharacter::AActionCharacter()
 
 	bUseControllerRotationYaw = false;	// 컨트롤러의 Yaw 회전 사용 안함
 	GetCharacterMovement()->bOrientRotationToMovement = true;	// 이동 방향으로 캐릭터 회전
-	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);	
+	GetCharacterMovement()->RotationRate = FRotator(0, 360, 0);
 }
 
 // Called when the game starts or when spawned
@@ -64,17 +65,19 @@ void AActionCharacter::BeginPlay()
 	}
 
 	Super::BeginPlay();	// 컴포넌트들의 BeginPlay가 실행된다.
-	
+
 	if (GetMesh())
 	{
 		AnimInstance = GetMesh()->GetAnimInstance();	// ABP 객체 가져오기		
-	}	
+	}
 
 	// 게임 진행 중에 자주 변경되는 값은 시작 시점에서 리셋을 해주는 것이 좋다.
-	bIsSprint = false;	
+	bIsSprint = false;
 
 	// 캐릭터에 다른 액터가 오버랩되었을 때 실행하기 위한 바인딩
 	OnActorBeginOverlap.AddDynamic(this, &AActionCharacter::OnBeginOverlap);
+
+	InteractionTargets.Empty();
 }
 
 // Called every frame
@@ -83,6 +86,7 @@ void AActionCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	SpendRunStamina(DeltaTime);
+	UpdateInteractionTargetOrder();
 }
 
 // Called to bind functionality to input
@@ -94,7 +98,7 @@ void AActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (enhanced)	// 입력 컴포넌트가 향상된 입력 컴포넌트일 때
 	{
 		enhanced->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionCharacter::OnMoveInput);
-		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Started, 
+		enhanced->BindActionValueLambda(IA_Sprint, ETriggerEvent::Started,
 			[this](const FInputActionValue& _) {
 				SetSprintMode();
 			});
@@ -104,6 +108,7 @@ void AActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			});
 		enhanced->BindAction(IA_Roll, ETriggerEvent::Triggered, this, &AActionCharacter::OnRollInput);
 		enhanced->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &AActionCharacter::OnAttackInput);
+		enhanced->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &AActionCharacter::OnInteractionInput);
 	}
 }
 
@@ -124,18 +129,18 @@ void AActionCharacter::AddItem_Implementation(UItemDataAsset* ItemData, int32 Co
 			);
 			FVector velocity = (GetActorForwardVector() + GetActorUpVector()) * 300.0f;
 			pickup->AddImpulse(velocity);
-			
+
 			APickupItem* pickupItem = Cast<APickupItem>(pickup);
 			if (pickupItem)
 			{
 				pickupItem->SetItemCount(remaining);
 			}
 		}
-	}	
+	}
 }
 
 void AActionCharacter::AddWeapon_Implementation(EWeaponCode Code, int32 UseCount)
-{		
+{
 	const UEnum* EnumPtr = StaticEnum<EItemCode>();
 	UE_LOG(LogTemp, Log, TEXT("무기획득 : %s"), *EnumPtr->GetDisplayNameTextByValue(static_cast<int8>(Code)).ToString());
 	EquipWeapon(Code);
@@ -151,6 +156,12 @@ void AActionCharacter::AddMoney_Implementation(int32 Income)
 void AActionCharacter::RemoveMoney_Implementation(int32 Expense)
 {
 	UE_LOG(LogTemp, Log, TEXT("돈 (%d) 골드를 사용했습니다."), Expense);
+	Inventory->AddMoney(-Expense);
+}
+
+bool AActionCharacter::HasEnoughMoney_Implementation(int32 Amount)
+{
+	return Amount <= Inventory->GetMoney();
 }
 
 void AActionCharacter::HealHealth_Implementation(float InHeal)
@@ -174,6 +185,29 @@ void AActionCharacter::RecoveryStamina_Implementation(float InRecovery)
 	if (Resource)
 	{
 		Resource->AddStamina(InRecovery);
+	}
+}
+
+void AActionCharacter::AddInteractionTarget_Implementation(AActor* InTarget)
+{
+	if (InTarget->Implements<UInteractable>())
+	{
+		InteractionTargets.Add(InTarget);
+
+		UpdateInteractionTargetOrder();
+	}
+}
+
+void AActionCharacter::ClearInteractionTarget_Implementation(AActor* InTarget)
+{
+	InteractionTargets.RemoveSingle(InTarget);
+}
+
+void AActionCharacter::TryInteraction_Implementation()
+{
+	if (!InteractionTargets.IsEmpty())
+	{
+		IInteractable::Execute_OnInteraction(InteractionTargets[0].Get());
 	}
 }
 
@@ -221,7 +255,7 @@ void AActionCharacter::OnAreaAttack()
 	{
 		//UE_LOG(LogTemp, Log, TEXT("OnAreaAttack : CurrentWeapon.IsValid()") );
 		CurrentWeapon->DamageToArea();
-	}	
+	}
 }
 
 void AActionCharacter::TestDropUsedWeapon()
@@ -247,9 +281,9 @@ void AActionCharacter::OnMoveInput(const FInputActionValue& InValue)
 
 	FQuat controlYawRotation = FQuat(FRotator(0, GetControlRotation().Yaw, 0));	// 컨트롤러의 Yaw회전을 따로 뽑아와서
 	moveDirection = controlYawRotation.RotateVector(moveDirection);	// 이동 방향에 적용
-	
+
 	AddMovementInput(moveDirection);
-	
+
 }
 
 void AActionCharacter::OnRollInput(const FInputActionValue& InValue)
@@ -257,7 +291,7 @@ void AActionCharacter::OnRollInput(const FInputActionValue& InValue)
 	//if (GetController()->IsMoveInputIgnored()) return;
 	if (AnimInstance.IsValid() && !GetController()->IsMoveInputIgnored())
 	{
-		if (!AnimInstance->IsAnyMontagePlaying() 
+		if (!AnimInstance->IsAnyMontagePlaying()
 			&& Resource->HasEnoughStamina(RollStaminaCost))	// 몽타주 재생중이 아니고 충분한 스태미너가 있을 때만 작동
 		{
 			//if (!GetLastMovementInputVector().IsNearlyZero())	// 입력을 하는 중에만 즉시 회전
@@ -276,9 +310,9 @@ void AActionCharacter::OnAttackInput(const FInputActionValue& InValue)
 
 	// 애님 인스턴스가 있고, 스태미너도 충분하고, 현재 무기가 공격을 할 수 있어야 한다.
 	if (AnimInstance.IsValid() && Resource->HasEnoughStamina(AttackStaminaCost)
-		&& (CurrentWeapon.IsValid() && CurrentWeapon->CanAttack())) 
+		&& (CurrentWeapon.IsValid() && CurrentWeapon->CanAttack()))
 	{
-		if (!AnimInstance->IsAnyMontagePlaying() )	// 몽타주가 재생 중이 아닐 때
+		if (!AnimInstance->IsAnyMontagePlaying())	// 몽타주가 재생 중이 아닐 때
 		{
 			// 첫번째 공격			
 			PlayAnimMontage(AttackMontage);	// 몽타주 재생
@@ -294,11 +328,16 @@ void AActionCharacter::OnAttackInput(const FInputActionValue& InValue)
 			}
 		}
 		else if (AnimInstance->GetCurrentActiveMontage() == AttackMontage)	// 몽타주가 재생 중인데, AttackMontage가 재생중이면
-		{			
+		{
 			// 콤보 공격
-			SectionJumpForCombo();			
-		}		
+			SectionJumpForCombo();
+		}
 	}
+}
+
+void AActionCharacter::OnInteractionInput(const FInputActionValue& InValue)
+{
+	IInteractor::Execute_TryInteraction(this);
 }
 
 void AActionCharacter::SetSprintMode()
@@ -354,7 +393,7 @@ void AActionCharacter::SectionJumpForCombo()
 			AnimInstance->Montage_GetCurrentSection(current),		// 현재 섹션
 			SectionJumpNotify->GetNextSectionName(),				// 다음 섹션의 이름
 			current);												// 실행될 몽타주
-			
+
 		bComboReady = false;	// 중복실행 방지
 		Resource->AddStamina(-AttackStaminaCost);	// 스태미너 감소
 		if (CurrentWeapon.IsValid())
@@ -410,7 +449,34 @@ void AActionCharacter::DropCurrentWeapon(EWeaponCode WeaponCode)
 			if (pickupWeapon && consumableWeapon)
 			{
 				pickupWeapon->SetWeaponUseCount(consumableWeapon->GetRemainingUseCount());
-			}			
+			}
+		}
+	}
+}
+
+bool AActionCharacter::IsChangeOrder(AActor* InTarget1, AActor* InTarget2)
+{
+	float distanceOld = FVector::DistSquared(GetActorLocation(), InTarget1->GetActorLocation());
+	float distanceNew = FVector::DistSquared(GetActorLocation(), InTarget2->GetActorLocation());
+	return distanceNew < distanceOld;
+}
+
+void AActionCharacter::UpdateInteractionTargetOrder()
+{
+	if (InteractionTargets.Num() > 1)	// 최소한으로 실행하기 위해 2개 이상일 때만 처리
+	{
+		for (int32 i = InteractionTargets.Num() - 1; i > 0; i--)
+		{
+			if (IsChangeOrder(InteractionTargets[i - 1].Get(), InteractionTargets[i].Get()))
+			{
+				AActor* temp = InteractionTargets[i - 1].Get();
+				InteractionTargets[i - 1] = InteractionTargets[i].Get();
+				InteractionTargets[i] = temp;
+			}
+			else
+			{
+				break;	// 변경되지 않았다 = 적절한 위치다 = 그만 확인해도 된다
+			}
 		}
 	}
 }

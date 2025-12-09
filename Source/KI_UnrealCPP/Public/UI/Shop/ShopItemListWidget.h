@@ -19,6 +19,7 @@ protected:
 
 public:
 	void ResetItemList(UDataTable* ItemList);
+	void UpdateAllBuyButton();
 
 protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))

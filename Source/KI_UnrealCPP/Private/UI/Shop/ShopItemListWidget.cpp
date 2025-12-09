@@ -56,6 +56,14 @@ void UShopItemListWidget::ResetItemList(UDataTable* ItemList)
 	for (int32 i = 0; i < selectCount; i++)
 	{
 		const FShopData_TableRow* row = selectedRows[i];
-		ShopItems[i]->SetItemData(row->ItemData, row->StockCount);
+		ShopItems[i]->InitializeItemBuy(row->ItemData, row->StockCount);
 	}	
+}
+
+void UShopItemListWidget::UpdateAllBuyButton()
+{
+	for (const UShopItemBuyWidget* item : ShopItems)	// 자신이 가진 판매 아이템 목록들의 구매버턴 업데이트 지시
+	{
+		item->UpdateBuyButton();
+	}
 }

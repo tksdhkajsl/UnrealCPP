@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "UI/Inventory/InventoryWidget.h"
+#include "UI/Shop/ShopWidget.h"
 #include "MainHudWidget.generated.h"
 
 UENUM(BlueprintType)
@@ -14,7 +15,7 @@ enum class EOpenState : uint8
 	Close	UMETA(DisplayName = "Close")
 };
 /**
- * 
+ *
  */
 UCLASS()
 class KI_UNREALCPP_API UMainHudWidget : public UUserWidget
@@ -30,6 +31,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Inventory")
 	void CloseInventory();
 
+	UFUNCTION(BlueprintCallable, Category = "UI|Shop")
+	void OpenShop(UDataTable* ItemList);
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Shop")
+	void CloseShop();
+
 	void AddToInventoryCloseDelegate(const FScriptDelegate& Delegate)
 	{
 		if (Inventory)
@@ -38,7 +45,15 @@ public:
 		}
 	}
 
-	inline EOpenState GetOpenState() const { return OpenState; }	
+	void AddToShopCloseDelegate(const FScriptDelegate& Delegate)
+	{
+		if (Shop)
+		{
+			Shop->OnShopCloseRequested.Add(Delegate);
+		}
+	}
+
+	inline EOpenState GetOpenState() const { return OpenState; }
 	inline UInventoryWidget* GetInventoryWidget() const { return Inventory; }
 
 protected:
@@ -59,5 +74,5 @@ protected:
 
 private:
 	EOpenState OpenState = EOpenState::Close;
-	
+
 };

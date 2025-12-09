@@ -24,27 +24,30 @@ void UInventoryWidget::NativeConstruct()
 
 void UInventoryWidget::InitializeInventoryWidget(UInventoryComponent* InventoryComponent)
 {
-	if (DetailInfoPanel)
-	{
-		UCanvasPanelSlot* canvasSlot = Cast<UCanvasPanelSlot>(Slot);
-		//UE_LOG(LogTemp, Log, TEXT("ParentPosition : %s"), *canvasSlot->GetPosition().ToString());
-		DetailInfoPanel->SetParentPosition(canvasSlot->GetPosition());	// DetailInfoPanel에 인벤토리 위젯의 위치 알려주기
-	}
+	TargetInventory = InventoryComponent;	// 인벤토리 컴포넌트 저장
 
-	if (InventoryComponent && SlotGridPanel)
+	if (TargetInventory.IsValid())
 	{
-		TargetInventory = InventoryComponent;	// 인벤토리 컴포넌트 저장
-		if (TargetInventory.IsValid())
+		UE_LOG(LogTemp, Log, TEXT("인벤토리 위젯 초기화"));
+
+		if (DetailInfoPanel)
 		{
-			UE_LOG(LogTemp, Log, TEXT("인벤토리 위젯 초기화"));
+			UCanvasPanelSlot* canvasSlot = Cast<UCanvasPanelSlot>(Slot);
+			//UE_LOG(LogTemp, Log, TEXT("ParentPosition : %s"), *canvasSlot->GetPosition().ToString());
+			DetailInfoPanel->SetParentPosition(canvasSlot->GetPosition());	// DetailInfoPanel에 인벤토리 위젯의 위치 알려주기
 
+			TargetInventory->OnInventorySlotCleared.AddDynamic(DetailInfoPanel, &UDetailInfoWidget::Close);
+		}
+
+		if (SlotGridPanel)
+		{
 			if (SlotGridPanel->GetChildrenCount() != TargetInventory->GetInventorySize())
 			{
 				UE_LOG(LogTemp, Error, TEXT("인벤토리 컴포넌트와 위젯의 슬롯 크기가 다릅니다!!!"));
 				return;
 			}
 
-			TargetInventory->OnInventoryMoneyChanged.BindUFunction(this, "RefreshMoneyPanel");
+			TargetInventory->OnInventoryMoneyChanged.AddDynamic(this, &UInventoryWidget::RefreshMoneyPanel);
 			TargetInventory->OnInventorySlotChanged.BindUFunction(this, "RefreshSlotWidget");
 
 			RefreshMoneyPanel(0);
@@ -54,7 +57,7 @@ void UInventoryWidget::InitializeInventoryWidget(UInventoryComponent* InventoryC
 			for (int i = 0; i < size; i++)
 			{
 				// 인벤토리 컴포넌트에 저장되어있는 슬롯과 슬롯 위젯을 엮어주는 작업
-				UInventorySlotWidget* slotWidget = Cast<UInventorySlotWidget>(SlotGridPanel->GetChildAt(i));				
+				UInventorySlotWidget* slotWidget = Cast<UInventorySlotWidget>(SlotGridPanel->GetChildAt(i));
 				slotWidget->InitializeSlot(TargetInventory.Get(), i);
 
 				slotWidget->OnSlotEnter.AddDynamic(this, &UInventoryWidget::OpenDetailInfo);

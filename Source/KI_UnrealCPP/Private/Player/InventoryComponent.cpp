@@ -17,7 +17,7 @@ UInventoryComponent::UInventoryComponent()
 void UInventoryComponent::AddMoney(int32 InIncome)
 {
 	Money += InIncome;
-	OnInventoryMoneyChanged.ExecuteIfBound(Money);
+	OnInventoryMoneyChanged.Broadcast(Money);
 }
 
 int32 UInventoryComponent::AddItem(UItemDataAsset* InItemData, int32 InCount)
@@ -89,6 +89,11 @@ void UInventoryComponent::SetItemAtIndex(int32 InSlotIndex, UItemDataAsset* InIt
 		TargetSlot.SetCount(InCount);	// InCount가 0이하면 자동 Clear
 
 		OnInventorySlotChanged.ExecuteIfBound(InSlotIndex);
+
+		if (TargetSlot.IsEmpty())
+		{
+			OnInventorySlotCleared.Broadcast();
+		}
 	}	
 }
 
@@ -126,7 +131,7 @@ FInvenSlot* UInventoryComponent::GetSlotData(int32 InSlotIndex)
 	return &Slots[InSlotIndex];
 }
 
-int32 UInventoryComponent::FindSlotWithItem(UItemDataAsset* InItemData, int32 InStartIndex)
+int32 UInventoryComponent::FindSlotWithItem(const UItemDataAsset* InItemData, int32 InStartIndex)
 {
 	int32 result = UInventoryComponent::InventoryFail;	// -1은 실패했음을 알리는 값
 	int32 size = Slots.Num();

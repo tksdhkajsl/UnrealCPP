@@ -18,6 +18,8 @@ class KI_UNREALCPP_API UDetailInfoWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 	void Open(class UItemDataAsset* InItemData);
+
+	UFUNCTION()
 	void Close();
 
 	inline void SetParentPosition(const FVector2D& InPosition) { ParentPosition = InPosition; }
