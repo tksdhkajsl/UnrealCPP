@@ -9,7 +9,7 @@ public class KI_UnrealCPP : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "NavigationSystem",
 			"UMG", "Slate", "SlateCore", "Niagara"
 		});
 

@@ -6,7 +6,7 @@
 #include "Maze/CellData.h"
 
 /**
- *
+ * 
  */
 class KI_UNREALCPP_API FMazeData
 {
@@ -45,7 +45,7 @@ private:
 private:
 	// 미로의 가로 칸(Cell)의 수
 	uint8 Width = 0;
-
+	
 	// 미로의 세로 칸 수
 	uint8 Height = 0;
 

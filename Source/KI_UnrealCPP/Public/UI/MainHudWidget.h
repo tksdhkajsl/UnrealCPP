@@ -15,7 +15,7 @@ enum class EOpenState : uint8
 	Close	UMETA(DisplayName = "Close")
 };
 /**
- *
+ * 
  */
 UCLASS()
 class KI_UNREALCPP_API UMainHudWidget : public UUserWidget
@@ -52,9 +52,12 @@ public:
 			Shop->OnShopCloseRequested.Add(Delegate);
 		}
 	}
-
-	inline EOpenState GetOpenState() const { return OpenState; }
+	
+	inline EOpenState GetInventoryState() const { return InventoryState; }	
 	inline UInventoryWidget* GetInventoryWidget() const { return Inventory; }
+
+	inline bool IsInventoryOpen() const { return InventoryState == EOpenState::Open; }
+	inline bool IsShopOpen() const { return ShopState == EOpenState::Open; }
 
 protected:
 	// meta = (BindWidget)
@@ -73,6 +76,7 @@ protected:
 	TObjectPtr<class UShopWidget> Shop = nullptr;
 
 private:
-	EOpenState OpenState = EOpenState::Close;
-
+	EOpenState InventoryState = EOpenState::Close;
+	EOpenState ShopState = EOpenState::Close;
+	
 };

@@ -13,7 +13,7 @@ void AActionPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UEnhancedInputLocalPlayerSubsystem* Subsystem =
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = 
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());	// Subsystem 가져오기 시도
 	if (Subsystem)	// Subsystem이 null이 아니면
 	{
@@ -74,7 +74,7 @@ void AActionPlayerController::OnInventoryOnOff()
 {
 	if (MainHudWidget.IsValid())
 	{
-		if (MainHudWidget->GetOpenState() == EOpenState::Open)
+		if (MainHudWidget->GetInventoryState() == EOpenState::Open)
 		{
 			CloseInventoryWidget();
 		}
@@ -120,11 +120,11 @@ void AActionPlayerController::UnFreezePlayer()
 
 void AActionPlayerController::OpenInventoryWidget()
 {
-	if (MainHudWidget.IsValid())
+	if (MainHudWidget.IsValid() && !MainHudWidget->IsInventoryOpen())
 	{
 		UE_LOG(LogTemp, Log, TEXT("OpenInventoryWidget"));
 		MainHudWidget->OpenInventory();
-		FreezePlayer();
+		FreezePlayer();		
 	}
 }
 
@@ -140,13 +140,13 @@ void AActionPlayerController::CloseInventoryWidget()
 
 void AActionPlayerController::OpenShopWidget(AMerchant* TargetMerchant)
 {
-	if (MainHudWidget.IsValid())
+	if (MainHudWidget.IsValid() && !MainHudWidget->IsShopOpen())
 	{
 		UE_LOG(LogTemp, Log, TEXT("OpenShopWidget"));
 		MainHudWidget->OpenInventory();
 		MainHudWidget->OpenShop(TargetMerchant->GetItemList());
 		FreezePlayer();
-
+				
 		SetViewTargetWithBlend(TargetMerchant, 1, EViewTargetBlendFunction::VTBlend_Cubic);
 	}
 }

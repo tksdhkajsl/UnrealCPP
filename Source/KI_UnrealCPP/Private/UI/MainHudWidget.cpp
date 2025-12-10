@@ -20,7 +20,7 @@ void UMainHudWidget::NativeConstruct()
 		{
 			// 리소스 컴포넌트에서 HP와 스테미너의 변화가 있을 때 UI 업데이트
 			resource->OnHealthChanged.AddUObject(HealthBar.Get(), &UResourceBarWidget::RefreshWidget);	// 예시용
-			resource->OnStaminaChanged.AddDynamic(StaminaBar.Get(), &UResourceBarWidget::RefreshWidget);
+			resource->OnStaminaChanged.AddDynamic(StaminaBar.Get(), &UResourceBarWidget::RefreshWidget);		
 
 			HealthBar->RefreshWidget(resource->GetCurrentHealth(), resource->GetMaxHealth());
 			StaminaBar->RefreshWidget(resource->GetCurrentStamina(), resource->GetMaxStamina());
@@ -37,7 +37,7 @@ void UMainHudWidget::NativeConstruct()
 	}
 
 	if (Inventory && Shop)
-	{
+	{		
 		// 상점위젯에서 아이템 판매가 일어났으면 인벤토리 위젯의 상세정보창 닫기
 		FScriptDelegate sellDelegate;
 		sellDelegate.BindUFunction(Inventory, "CloseDetailInfo");
@@ -49,12 +49,12 @@ void UMainHudWidget::OpenInventory()
 {
 	Inventory->RefreshInventoryWidget();	// 열릴때마다 UI 내용 갱신
 	Inventory->SetVisibility(ESlateVisibility::Visible);
-	OpenState = EOpenState::Open;
+	InventoryState = EOpenState::Open;
 }
 
 void UMainHudWidget::CloseInventory()
 {
-	OpenState = EOpenState::Close;
+	InventoryState = EOpenState::Close;
 	Inventory->SetVisibility(ESlateVisibility::Hidden);
 }
 
@@ -64,10 +64,12 @@ void UMainHudWidget::OpenShop(UDataTable* ItemList)
 	{
 		Shop->InitializeShop(ItemList);
 		Shop->SetVisibility(ESlateVisibility::Visible);
+		ShopState = EOpenState::Open;
 	}
 }
 
 void UMainHudWidget::CloseShop()
 {
+	ShopState = EOpenState::Close;
 	Shop->SetVisibility(ESlateVisibility::Hidden);
 }

@@ -20,7 +20,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:
+public:	
 	virtual void OnInteraction_Implementation() override;
 
 	inline UDataTable* GetItemList() const { return ItemList; }
@@ -32,8 +32,8 @@ protected:
 	UFUNCTION()
 	void OnInteractionEndOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
-
-
+	
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UWidgetComponent> TextWidgetComponent = nullptr;
@@ -51,5 +51,5 @@ protected:
 	TObjectPtr<UDataTable> ItemList = nullptr;
 
 private:
-
+	
 };

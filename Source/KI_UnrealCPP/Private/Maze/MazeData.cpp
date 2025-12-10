@@ -42,7 +42,7 @@ void FMazeData::ClearMaze()
 FCellData* FMazeData::GetCell(uint8 InX, uint8 InY)
 {
 	if (IsValidLocation(InX, InY))
-	{
+	{	
 		return &(Cells[LocationToIndex(InX, InY)]);
 	}
 	return nullptr;
@@ -73,24 +73,24 @@ void FMazeData::WilSonAlgorithmExecute()
 	while (NotMazeCells.Num() > 0)
 	{
 		FCellData* startCell = NotMazeCells.Pop();
-
+		
 		FCellData* currentCell = startCell;
 		do
 		{
-			FCellData* neighborCell = GetRandomNeighborCell(*currentCell); //이웃 셀 선택
-			currentCell->NextCell = neighborCell;	//이동할 셀 기록
-			currentCell = neighborCell;				//해당 셀로 이동
-		} while (!currentCell->bInMaze);	//currentCell 미로에 포함된 영역에 도달할 때까지 반복
+			FCellData* neighborCell = GetRandomNeighborCell(*currentCell);	// 이웃 셀 선택
+			currentCell->NextCell = neighborCell;	// 이동할 이웃셀 기록
+			currentCell = neighborCell;				// 이웃 셀로 이동
+		} while (!currentCell->bInMaze);	// currentCell이 미로에 포함된 영역에 도달할 때까지 반복
 
 		FCellData* path = startCell;
 		while (path != currentCell)	// startCell에서 currentCell까지 순서대로 진행
 		{
-			path->bInMaze = true;		//미로에 포함시킴
-			NotMazeCells.Remove(path);	//미로가 아닌 셀 목록에서 제거
-			ConnectCells(path, path->NextCell);	//셀간에 벽 제거
+			path->bInMaze = true;				// 미로에 포함시키고
+			NotMazeCells.Remove(path);			// 미로가 아닌 셀 목록에서 제거
+			ConnectCells(path, path->NextCell);	// 셀간에 벽 제거
 			path = path->NextCell;	// 다음 셀로 넘어가기
 		}
-	}// 미로에 포함되지 않은 셀이 없어질 때까지 반복
+	}	// 미로에 포함되지 않은 셀이 없어질 때까지 반복
 }
 
 void FMazeData::ConnectCells(FCellData* InFrom, FCellData* InTo)

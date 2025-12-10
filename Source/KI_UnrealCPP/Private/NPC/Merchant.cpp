@@ -12,7 +12,7 @@
 // Sets default values
 AMerchant::AMerchant()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+ 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	TextWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("TextWidget"));
@@ -37,16 +37,16 @@ void AMerchant::BeginPlay()
 	Super::BeginPlay();
 
 	OnActorBeginOverlap.AddDynamic(this, &AMerchant::OnInteractionBeginOverlap);
-	OnActorEndOverlap.AddDynamic(this, &AMerchant::OnInteractionEndOverlap);
+	OnActorEndOverlap.AddDynamic(this, &AMerchant::OnInteractionEndOverlap);	
 }
 
 void AMerchant::OnInteraction_Implementation()
 {
 	// 상점 열기
-	UE_LOG(LogTemp, Log, TEXT("상점을 엽니다. (%s)"), *GetActorLabel());
 	UWorld* world = GetWorld();
 	if (AActionPlayerController* pc = world->GetFirstPlayerController<AActionPlayerController>())
 	{
+		//UE_LOG(LogTemp, Log, TEXT("상점을 엽니다. (%s)"), *GetActorLabel());
 		pc->OpenShopWidget(this);
 	}
 }

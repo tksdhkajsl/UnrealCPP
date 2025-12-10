@@ -8,7 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShopCloseRequested);
 /**
- *
+ * 
  */
 UCLASS()
 class KI_UNREALCPP_API UShopWidget : public UUserWidget
@@ -21,8 +21,8 @@ protected:
 public:
 	void InitializeShop(UDataTable* ItemList);
 
-	void AddToItemSellDelegate(const FScriptDelegate& Delegate);
-
+	void AddToItemSellDelegate(const FScriptDelegate& Delegate);	
+		
 	UFUNCTION()
 	void UpdateAllBuyButtonState(int32 _);
 
@@ -35,7 +35,7 @@ private:
 
 public:
 	FOnShopCloseRequested OnShopCloseRequested;
-
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell", meta = (BindWidget))
 	TObjectPtr<class UShopItemSellWidget> ItemSellWidget;

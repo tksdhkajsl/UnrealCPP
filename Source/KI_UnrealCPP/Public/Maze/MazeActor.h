@@ -10,16 +10,35 @@ UCLASS()
 class KI_UNREALCPP_API AMazeActor : public AActor
 {
 	GENERATED_BODY()
-
-public:
+	
+public:	
 	// Sets default values for this actor's properties
 	AMazeActor();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-public:
-	class FMazeData* MazeData = nullptr;
+	void OnPreMapGenerate();
+	void OnPostMapGenerate();
+
+private:	
+	class FMazeData* MakeMaze();
+	void SpawnCells(FMazeData* Maze);
+	void ClearMaze(class FMazeData*& Maze);
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Maze", meta = (ClampMin = "3", ClampMax = "100"))
+	int32 Width = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Maze", meta = (ClampMin = "3", ClampMax = "100"))
+	int32 Height = 3;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Maze")
+	int32 RandomSeed = -1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Maze")
+	TSubclassOf<class ACellActor> CellActorClass = nullptr;
+
+
 };
